@@ -3,16 +3,13 @@
 #include <unistd.h>
 #include <linux/version.h>
 #include <omp.h>
-#include <cstdio>
-#include <cstdlib>
-#include <cstdint>
-#include <cinttypes>
-#include <chrono>
-#include <cmath>
-#include <cassert>
-#include <initializer_list>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <assert.h>
 
-static const size_t N = 2ULL << 28;
+static const size_t N = 1ULL << 26;
 
 // XXX temporary workaround for bug in numactl XXX
 // https://github.com/numactl/numactl/issues/38
@@ -90,7 +87,6 @@ uint64_t __attribute__((optimize("O0"))) bench_seq_read(uint64_t* memory_to_acce
 // where the action happens
 int main() {
 	uint64_t *a;
-  std::chrono::high_resolution_clock::time_point t1, t2;
   uint64_t duration;
   double duration_local;
 
@@ -106,11 +102,7 @@ int main() {
   printmask("Nodes allowed", numa_get_mems_allowed());
 
   // print dataset size
-  static const char *suff[] = {"B", "KB", "MB", "GB", "TB", "PB"};
-  int suff_i = 0;
-  double array_size = N * sizeof(uint64_t);
-  for (; array_size >= 1024 / sizeof(suff[0]); suff_i++, array_size /= 1024);
-  printf("array size is %0.2lf%s\n", array_size, suff[suff_i]);
+  printf("array size is %ldMB\n", (N * sizeof(uint64_t))/1024/1024);
   printf("running benchmark using %d threads\n", omp_get_max_threads());
 
 	// initialize: bind array to local node, initialize it and warm up
@@ -125,24 +117,11 @@ int main() {
   printf("warming up...\n");
   bench_seq_read(a, N*sizeof(uint64_t));
 
-/*  // run benchmark with 100% of the array allocated to local node
-	printf("checking local\n");
-  change_membind(a, N*sizeof(uint64_t), 1.0);
-	t1 = std::chrono::system_clock::now();
-  bench_seq_read(a, N*sizeof(uint64_t));
-  t2 = std::chrono::system_clock::now();
-  duration_local = duration = std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
-	printf("\x1B[31mreference time: %" PRIu64 "ns\n\x1B[0m", duration);*/
-
   // run benchmark with different local node allocation ratios
   for (double r=0.25; r <= 1.00; r+=0.25) {
     printf("\n> Checking %.0f%% local\n", r*100);
 	  change_membind(a, N*sizeof(uint64_t), r);
-		t1 = std::chrono::system_clock::now();
 	  bench_seq_read(a, N*sizeof(uint64_t));
-		t2 = std::chrono::system_clock::now();
-	  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
-		printf("\x1B[36mlocal_ratio=%f time: %" PRIu64 "ns (relative = %lf*local)\n\x1B[0m", r, duration, duration/duration_local);
   }
 
 	return 0;

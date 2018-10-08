@@ -8,7 +8,13 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+DartConfiguration.tcl
 
-/main
-/bandwidth_bench_with_perf
-/force_interleave
+# generated libraries
+/libunstickymem.so
+
+# generated executables
+/bench
+/autobench
+/test_hello_world
+/test_joao
