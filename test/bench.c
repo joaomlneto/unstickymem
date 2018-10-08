@@ -32,9 +32,6 @@
 #define MPOL_LOCAL 4
 #endif
 
-#define COLOR_RED "\x1B[31m"
-#define COLOR_NONE "\x1B[0m"
-
 #define die(msg, args...)                                                 \
   do {                                                                    \
     fprintf(stderr,"(%s,%d) " msg "\n", __FUNCTION__ , __LINE__, ##args); \
