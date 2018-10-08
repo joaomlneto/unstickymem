@@ -1,0 +1,1 @@
+cmd_/home/dgureya/adaptive_bw_bench/pmc/pmcdriver/MSRdrv.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000 -T ./scripts/module-common.lds  --build-id  -o /home/dgureya/adaptive_bw_bench/pmc/pmcdriver/MSRdrv.ko /home/dgureya/adaptive_bw_bench/pmc/pmcdriver/MSRdrv.o /home/dgureya/adaptive_bw_bench/pmc/pmcdriver/MSRdrv.mod.o ;  true

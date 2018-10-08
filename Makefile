@@ -1,12 +1,20 @@
-CC=g++-8
-CFLAGS=-O0 -g -std=gnu++17
+CC=gcc-8
+CFLAGS=-O0 -g
 LIBS=-lnuma -fopenmp -pthread
 
 EXEC=main
+BENCHMARK=bandwidth_bench_with_perf
+INTERLEAVE_BUG=force_interleave
 
-all: main
+all: $(BENCHMARK) $(INTERLEAVE_BUG)
 
-$(EXEC): main.cpp
+#$(EXEC): main.cpp
+#	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+$(BENCHMARK): bandwidth_bench_with_perf.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+$(INTERLEAVE_BUG): force_interleave.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 run_local: $(EXEC)
@@ -19,4 +27,4 @@ run_all: $(EXEC)
 	./$(EXEC)
 
 clean:
-	rm -f main
+	rm -f *.o $(EXEC) $(BENCHMARK)
