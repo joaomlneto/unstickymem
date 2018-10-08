@@ -19,11 +19,15 @@ MappedMemorySegment::MappedMemorySegment(char *line) {
   unsigned long addr_start, addr_end;
   char perms_str[8];
   //printf("line: %s", line);
+
+  // parse string
   DIEIF(sscanf(line, "%lx-%lx %7s %lx %u:%u %lu %n%*[^\n]%n",
                      &addr_start, &addr_end, perms_str, &_offset,
                      &_deviceMajor, &_deviceMinor, &_inode,
                      &name_start, &name_end) < 7,
         "FAILED TO PARSE");
+
+  // convert addresses
   _startAddress = reinterpret_cast<void*>(addr_start);
   _endAddress = reinterpret_cast<void*>(addr_end);
 
@@ -106,10 +110,8 @@ std::vector<MappedMemorySegment> get_memory_map() {
   free(line);
   DIEIF(!feof(maps) || ferror(maps), "error parsing maps file");
   DIEIF(fclose(maps), "error closing maps file");
+
   //printf("done\n");
-  /*for (auto &segment: segments) {
-    segment.toString();
-  }*/
   return segments;
 }
 

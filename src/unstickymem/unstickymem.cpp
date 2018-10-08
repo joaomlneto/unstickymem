@@ -49,9 +49,9 @@ void place_pages(void *addr, unsigned long len, double r) {
   LTRACEF("size_to_bind=%d", size_to_bind);
   LDEBUGF("mbind(%p, %lu, MPOL_INTERLEAVE, numa_get_mems_allowed(), MPOL_MF_MOVE | MPOL_MF_STRICT)",
           addr, size_to_bind);
-/*  DIEIF(mbind(addr, size_to_bind, MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
+  DIEIF(mbind(addr, size_to_bind, MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
               numa_get_mems_allowed()->size, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
-        "mbind interleave failed");*/
+        "mbind interleave failed");
   // check if there is something left to bind to local
   unsigned long local_len = len - size_to_bind;
   if (local_len <= 0)
@@ -60,8 +60,16 @@ void place_pages(void *addr, unsigned long len, double r) {
   void *local_addr = ((char*) addr) + size_to_bind;
   LDEBUGF("mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
           local_addr, local_len);
-/*  DIEIF(mbind(local_addr, local_len, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
-        "mbind local failed");*/
+  DIEIF(mbind(local_addr, local_len, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+        "mbind local failed");
+}
+
+void place_all_pages(double r) {
+  std::vector<MappedMemorySegment> segments = get_memory_map();
+  for (auto &segment: segments) {
+    if (segment._name == "[vsyscall]") continue;
+    place_pages(segment._startAddress, segment.length(), r);
+  }
 }
 
 void dump_info(void) {
@@ -77,16 +85,11 @@ void print_memory_map(void) {
   LINFO("PROCESS MEMORY MAP");
   LINFOF("Global Region: %p:%p (%ld pages)", GLOBALS_START, GLOBALS_END, GLOBALS_SIZE/PAGE_SIZE);
   LINFOF("Program break: %p", sbrk(0));
-	//address_range *list = mem_stats(getpid());
-  get_memory_map();
-
-  /*for (address_range *curr = list; curr != NULL; curr = curr->next)
-    printf("\t%p .. %p: %s\n", curr->start, (void *)((char *)curr->start + curr->length), curr->name);
-  printf("\n");
-  fflush(stdout);
-  free_mem_stats(list);*/
-
-
+  std::vector<MappedMemorySegment> segments = get_memory_map();
+  // place all on local node!
+  for (auto &segment: segments) {
+    segment.toString();
+  }
 }
 
 /**
@@ -103,8 +106,8 @@ void optimize_numa_placement(void) {
   LDEBUG("NUMA Placement Optimization Scheduled");
   LFATAL("fake place_pages call");
   dump_info();
-  place_pages(0, PAGE_SIZE * 100, 0.5);
   print_memory_map();
+  place_all_pages(1.0);
 }
 
 #ifdef __cplusplus
