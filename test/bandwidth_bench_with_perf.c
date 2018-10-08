@@ -154,7 +154,6 @@ void place_pages(uint64_t *memory_to_access, uint64_t memory_size, double ratio)
  * Memset the array so that it is fully paged in memory before the bench
  */
 void bench_seq_init(uint64_t *memory_to_access, uint64_t memory_size) {
-  printf(COLOR_RED "hi from CPU#%d\n" COLOR_NONE, sched_getcpu());
   memset(memory_to_access, 0, memory_size);
 }
 
@@ -305,8 +304,6 @@ void * doWork(void *pdata) {
       bench_seq_init(memory_to_access, memory_size);
       /** wait everyone to set data and thread affinity and initialize **/
       pthread_barrier_wait(&barrier);
-      sleep(5);
-      exit(-1);
       initialized=1;
     }
     

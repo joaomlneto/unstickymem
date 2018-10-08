@@ -9,6 +9,7 @@
 #include <cinttypes>
 #include <chrono>
 #include <cmath>
+#include <cassert>
 #include <initializer_list>
 
 static const size_t N = 2ULL << 28;
@@ -33,43 +34,35 @@ void printmask(const char *name, struct bitmask *mask) {
   * NUMA nodes. Places `local_ratio`*len in the local node and the remaining
   * is interleaved between the other NUMA nodes
  **/
-void change_membind(void *addr, unsigned long len, float local_ratio) {
-  if (local_ratio < 0.0 || local_ratio > 1.0) {
-    printf("duh! %f? thats not a ratio. mbind failed\n", local_ratio);
-		return;
+void change_membind(void* memory_to_access, unsigned long memory_size, double ratio) {
+  int r;
+  double local_ratio = ratio - (1 - ratio) / (numa_num_configured_nodes() - 1);
+  double interleave_ratio = 1 - local_ratio;
+  uint64_t size_to_bind = interleave_ratio * memory_size;
+  uint64_t page_align_mask = ~(sysconf(_SC_PAGESIZE) - 1);
+  size_to_bind = size_to_bind & page_align_mask;
+  //printf("stb=%ld\n", size_to_bind);
+
+  printf("w=%lf ratio_interleave = %lf\n", ratio, interleave_ratio);
+
+  //printf("will call mbind INTERLEAVE on %p with size %ld\n", memory_to_access, size_to_bind);
+  // First, uniform interleaving on 2xw2 portion of the array
+  printmask("numa_get_mems_allowed", numa_get_mems_allowed());
+  //r = mbind(memory_to_access, size_to_bind, MPOL_INTERLEAVE, &nodemask, 3, MPOL_MF_MOVE);
+  printf("mbind(%p, %lu, MPOL_INTERLEAVE, all, %lu, MPOL_MF_MOVE | MPOL_MF_STRICT)\n",
+          memory_to_access, size_to_bind, numa_get_mems_allowed()->size);
+  r = mbind(memory_to_access, size_to_bind, MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp, numa_get_mems_allowed()->size, MPOL_MF_MOVE | MPOL_MF_STRICT);
+  if (r!=0) {perror("mbind");exit(1);}
+
+  // Then, interleave the remaining pages on the local node
+  memory_to_access = (uint64_t*) (((char*)memory_to_access)+size_to_bind);
+  size_to_bind = memory_size - size_to_bind;
+  if (size_to_bind > 0) {
+    // printf("will call mbind on %p with size %ld\n", memory_to_access, size_to_bind);
+    //r = mbind(memory_to_access, size_to_bind, MPOL_BIND, &nodemask, 2, MPOL_MF_MOVE);
+    r = mbind(memory_to_access, size_to_bind, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT);
+    if (r!=0) {perror("mbind");exit(1);}
   }
-  if (local_ratio < 1.0 / numa_num_configured_nodes()) {
-    printf("hmm.. putting more per remote node than local node? thats not a good ratio! sorry! aborting!\n");
-    return;
-  }
-  // the local/remote ratios are the relative quantities that will be allocated
-  // in the local/remote NUMA nodes. a 0.5 local_ratio means half the memory
-  // will be in the local node and the other half will be spread out in the
-  // remote NUMA nodes
-  float remote_ratio = 1.0 - local_ratio;
-  // the preferred/interleave ratios are the ratios that are sent to `mbind`
-  // to achieve the local/remote ratios we want
-  float preferred_ratio = local_ratio - remote_ratio / (numa_num_configured_nodes() - 1);
-  float interleave_ratio = 1.0 - preferred_ratio;
-  // here we just convert relative amounts to bytes
-  unsigned long len_preferred = std::lround(len * preferred_ratio);
-  unsigned long len_interleave = std::lround(len * interleave_ratio);
-  // compute the start/end addresses of the local/interleaved segments
-  char *interleave_addr = ((char*) addr) + len_preferred;
-  char *end_preferred_addr = ((char*) addr) + len_preferred - 1;
-  char *end_interleave_addr = ((char*) interleave_addr) + len_interleave - 1;
-  // bitmasks for mbind
-  struct bitmask *all_nodes_mask = numa_allocate_nodemask();
-  copy_bitmask_to_bitmask(numa_all_nodes_ptr, all_nodes_mask);
-  printmask("ALL NODES MASK", all_nodes_mask);
-  /*printf("[RATIOS]  local = %f remote = %f\n", local_ratio, remote_ratio);
-  printf("[MBIND]   preferred %f (%ld bytes) interleaved %f (%ld bytes)\n",
-         preferred_ratio, len_preferred, interleave_ratio, len_interleave);
-  printf("[MEMADDR] preferred [%p:%p] interleaved [%p:%p]\n", addr, end_preferred_addr, interleave_addr, end_interleave_addr);*/
-  printf("\x1B[32mmbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_STRICT | MPOL_MF_MOVE_ALL);\n\x1B[0m", addr, len_preferred);
-  printf("\x1B[33mmbind(%p, %lu, MPOL_INTERLEAVE, NULL, 0, MPOL_MF_STRICT | MPOL_MF_MOVE_ALL);\n\x1B[0m", interleave_addr, len_interleave);
-  mbind(addr, len_preferred, MPOL_LOCAL, NULL, 0, MPOL_MF_STRICT | MPOL_MF_MOVE_ALL);
-	mbind(interleave_addr, len_interleave, MPOL_INTERLEAVE, all_nodes_mask->maskp, all_nodes_mask->size, MPOL_MF_STRICT | MPOL_MF_MOVE_ALL);
 }
 
 /**
@@ -96,7 +89,7 @@ uint64_t __attribute__((optimize("O0"))) bench_seq_read(uint64_t* memory_to_acce
 
 // where the action happens
 int main() {
-	uint64_t *a = reinterpret_cast<uint64_t*>(malloc(N*sizeof(uint64_t)));
+	uint64_t *a;
   std::chrono::high_resolution_clock::time_point t1, t2;
   uint64_t duration;
   double duration_local;
@@ -111,7 +104,6 @@ int main() {
   printf("NUMA nodes: %d\n", numa_num_configured_nodes());
   // list of nodes where this process can allocate memory
   printmask("Nodes allowed", numa_get_mems_allowed());
-  printmask("allnodes", numa_all_nodes_ptr);
 
   // print dataset size
   static const char *suff[] = {"B", "KB", "MB", "GB", "TB", "PB"};
@@ -121,8 +113,8 @@ int main() {
   printf("array size is %0.2lf%s\n", array_size, suff[suff_i]);
   printf("running benchmark using %d threads\n", omp_get_max_threads());
 
-
 	// initialize: bind array to local node, initialize it and warm up
+  assert(posix_memalign((void**)&a, sysconf(_SC_PAGESIZE), N * sizeof(uint64_t)) == 0);
   printf("initializing array...\n");
   change_membind(a, N*sizeof(uint64_t), 1.0);
   a[0] = 123;
@@ -133,17 +125,17 @@ int main() {
   printf("warming up...\n");
   bench_seq_read(a, N*sizeof(uint64_t));
 
-  // run benchmark with 100% of the array allocated to local node
+/*  // run benchmark with 100% of the array allocated to local node
 	printf("checking local\n");
   change_membind(a, N*sizeof(uint64_t), 1.0);
 	t1 = std::chrono::system_clock::now();
   bench_seq_read(a, N*sizeof(uint64_t));
   t2 = std::chrono::system_clock::now();
   duration_local = duration = std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
-	printf("\x1B[31mreference time: %" PRIu64 "ns\n\x1B[0m", duration);
+	printf("\x1B[31mreference time: %" PRIu64 "ns\n\x1B[0m", duration);*/
 
   // run benchmark with different local node allocation ratios
-  for (double r=0.75; r >= 0.25; r-=0.25) {
+  for (double r=0.25; r <= 1.00; r+=0.25) {
     printf("\n> Checking %.0f%% local\n", r*100);
 	  change_membind(a, N*sizeof(uint64_t), r);
 		t1 = std::chrono::system_clock::now();
