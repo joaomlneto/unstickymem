@@ -78,7 +78,7 @@ bool MemorySegment::isPrivate() {
   return (_permissions && 16U) != 0;
 }
 
-void MemorySegment::toString() {
+void MemorySegment::print() {
   char info[1024];
   snprintf(info, sizeof(info),
            "[%18p-%18p] (%5lu pages) [off=%7lu] [dev=%u:%u] [inode=%8lu] %c%c%c%c '%s'",
@@ -93,8 +93,28 @@ void MemorySegment::toString() {
            (isReadable() ?   'R' : '-'),
            _name.c_str());
   L->printHorizontalRule(info, (isWriteable() ? 2 : 1));
+  /*
+  if (isHeap())
+    L->printHorizontalRule(">> FOUND THE HEAP!", 3);
+  if (isStack())
+    L->printHorizontalRule(">> FOUND THE STACK!", 4);
+  if (isAnonymous())
+    L->printHorizontalRule(">> ANONYMOUS!", 5);
+  */
 }
 
 bool MemorySegment::isBindable() {
   return name() != "[vsyscall]";
+}
+
+bool MemorySegment::isHeap() {
+  return name() == "[heap]";
+}
+
+bool MemorySegment::isStack() {
+  return name() == "[stack]";
+}
+
+bool MemorySegment::isAnonymous() {
+  return name().length() == 0;
 }

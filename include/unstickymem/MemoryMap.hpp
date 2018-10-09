@@ -3,9 +3,16 @@
 
 #include "unstickymem/MemorySegment.hpp"
 
-class MemoryMap : public std::vector<MemorySegment> {
+class MemoryMap : private std::vector<MemorySegment> {
  public:
   MemoryMap();
+  void print();
+
+  //allowed methods from std::vector
+  using vector::operator[];
+  using vector::begin;
+  using vector::end;
+
 };
 
 #endif  // UNSTICKYMEM_MEMORY_MAP

@@ -19,3 +19,9 @@ MemoryMap::MemoryMap() {
   DIEIF(!feof(maps) || ferror(maps), "error parsing maps file");
   DIEIF(fclose(maps), "error closing maps file");
 }
+
+void MemoryMap::print() {
+  for (auto &segment : *this) {
+    segment.print();
+  }
+}

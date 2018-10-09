@@ -158,7 +158,7 @@ void place_all_pages(double r) {
     if (segment.isBindable() &&        // careful with [vsyscall]
         segment.isWriteable() &&       // lets just move writeable regions
         segment.length() > 1ULL<<20) { // dont care about regions <1MB
-      segment.toString();
+      segment.print();
       place_pages(segment.startAddress(), segment.length(), r);
     }
   }
@@ -170,10 +170,7 @@ void dump_info(void) {
   LINFOF("sbrk(0): 0x%lx", sbrk(0));
   LINFOF("Program break: %p", sbrk(0));
   MemoryMap segments;
-  // place all on local node!
-  for (auto &segment: segments) {
-    segment.toString();
-  }
+  segments.print();
 }
 
 __attribute__((constructor)) void libunstickymem_initialize(void) {

@@ -23,6 +23,7 @@ class MemorySegment {
   std::string name();
   size_t length();
   dev_t device();
+  // getters for the permissions bitmask
   bool isReadable();
   bool isWriteable();
   bool isExecutable();
@@ -30,7 +31,10 @@ class MemorySegment {
   bool isPrivate();
   // other functions
   bool isBindable();
-  void toString();
+  bool isAnonymous();
+  bool isHeap();
+  bool isStack();
+  void print();
 };
 
 #endif  // UNSTICKYMEM_MEMORY_SEGMENT
