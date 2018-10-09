@@ -10,11 +10,10 @@
 #include <numa.h>
 #include <numaif.h>
 
-#include "timingtest.h"
-
-#include "fpthread/Logger.hpp"
-#include "unstickymem/mem-stats.h"
 #include "unstickymem/unstickymem.h"
+#include "unstickymem/MemoryMap.hpp"
+#include "fpthread/Logger.hpp"
+#include "timingtest.h"
 
 #define PAGE_ALIGN_DOWN(x) (((intptr_t) (x)) & ~PAGE_MASK)
 #define PAGE_ALIGN_UP(x) ((((intptr_t) (x)) + PAGE_MASK) & ~PAGE_MASK)
@@ -31,11 +30,13 @@ static const int PAGE_MASK        = PAGE_SIZE - 1;
 extern "C" {
 #endif
 
+// wait before starting
+#define WAIT_START 2 // seconds
 // how many times should we read the HW counters before progressing?
-#define NUM_POLLS 14
+#define NUM_POLLS 20
 // how many should we ignore
-#define NUM_POLL_OUTLIERS 2
-// how long should we wait between 
+#define NUM_POLL_OUTLIERS 5
+// how long should we wait between
 #define POLL_SLEEP 200000 // 0.2s
 
 static pthread_t hw_poller_thread;
@@ -43,16 +44,16 @@ static pthread_t hw_poller_thread;
 // sample the HW counters and get the stall rate (since last measurement)
 double get_stall_rate() {
   const int pmc_num = 0x00000000; // program counter monitor number
-  static bool initialized = false;
+  //static bool initialized = false;
   static uint64_t prev_clockcounts = 0;
   static uint64_t prev_pmcounts = 0;
   // wait a bit to get a baseline first time function is called
-  if (!initialized) {
+  /*if (!initialized) {
     prev_clockcounts = readtsc();
     prev_pmcounts = readpmc(pmc_num);
     usleep(POLL_SLEEP);
     initialized = true;
-  }
+  }*/
   uint64_t clock = readtsc();
   uint64_t pmc = readpmc(pmc_num);
   double stall_rate = ((double)(pmc - prev_pmcounts)) / (clock - prev_clockcounts);
@@ -65,7 +66,7 @@ double get_average_stall_rate(size_t num_measurements,
                               size_t num_outliers_to_filter) {
   std::vector<double> measurements(num_measurements);
 
-  // throw away a measurement, because why not
+  // throw away a measurement, just because
   get_stall_rate();
   usleep(usec_between_measurements);
 
@@ -80,10 +81,6 @@ double get_average_stall_rate(size_t num_measurements,
   measurements.erase(measurements.end() - num_outliers_to_filter, measurements.end());
   measurements.erase(measurements.begin(), measurements.begin() + num_outliers_to_filter);
 
-  /*for (size_t i=0; i < measurements.size(); i++)
-    printf("%lf ", measurements[i]);
-  printf("\n"); // */
-
   // return the average
   double sum = std::accumulate(measurements.begin(), measurements.end(), 0.0);
   return sum / measurements.size();
@@ -94,9 +91,11 @@ double get_average_stall_rate(size_t num_measurements,
  */
 void *hw_monitor_thread(void *arg) {
   double local_ratio = 1.0 / numa_num_configured_nodes(); // start with everything interleaved
-  double stall_rate, prev_stall_rate;
+  double prev_stall_rate = std::numeric_limits<double>::infinity();
+  double best_stall_rate = std::numeric_limits<double>::infinity();
+  double stall_rate;
 
-  // run on core zero
+  // pin thread to core zero
   cpu_set_t mask;
   CPU_ZERO(&mask);
   CPU_SET(0, &mask);
@@ -104,37 +103,28 @@ void *hw_monitor_thread(void *arg) {
         "could not set affinity for hw monitor thread");
 
   // lets wait a bit before starting the process
-  sleep(2);
-
-  // get baseline stall rate
-  prev_stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS);
-  LINFOF("RATIO = %lf STALL RATE = %lf\n", local_ratio, prev_stall_rate);
+  get_stall_rate();
+  sleep(WAIT_START);
 
   // slowly achieve awesomeness
   while(local_ratio < 1.00) {
-    LWARNF("GOING TO CHECK A LOCAL RATIO OF %lf", local_ratio);
     place_all_pages(local_ratio);
     stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS);
-    LINFOF("RATIO = %lf STALL RATE = %lf", local_ratio, prev_stall_rate);
-    if (stall_rate > prev_stall_rate) break;
+    LINFOF("Ratio: %1.2lf StallRate: %1.6lf (previous %1.6lf; best %1.6lf)",
+           local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
+    // compute the minimum rate
+    best_stall_rate = std::min(best_stall_rate, stall_rate);
+    if (stall_rate > best_stall_rate + 0.00005)
+      break;
     prev_stall_rate = stall_rate;
-    local_ratio += 0.01;
+    local_ratio += 0.05;
   }
 
   LINFO("My work here is done! Enjoy the speedup");
   LINFOF("Ratio: %lf", local_ratio);
-  LINFOF("Stall Rate: %lf", stall_rate);
+  LINFOF("Stall Rate: %lf", prev_stall_rate);
 
   return NULL;
-}
-
-__attribute__((constructor)) void libunstickymem_initialize(void) {
-  LINFO("Initializing");
-  pthread_create(&hw_poller_thread, NULL, hw_monitor_thread, NULL);
-}
-
-__attribute((destructor)) void libunstickymem_finalize(void) {
-  LINFO("Finalizing");
 }
 
 void place_pages(void *addr, unsigned long len, double r) {
@@ -145,8 +135,8 @@ void place_pages(void *addr, unsigned long len, double r) {
   DIEIF(size_to_bind < 0 || size_to_bind > len,
         "that ratio does not compute!");
   // interleave some portion
-  /*LTRACEF("mbind(%p, %lu, MPOL_INTERLEAVE, numa_get_mems_allowed(), MPOL_MF_MOVE | MPOL_MF_STRICT)",
-          addr, size_to_bind);*/
+  LTRACEF("mbind(%p, %lu, MPOL_INTERLEAVE, numa_get_mems_allowed(), MPOL_MF_MOVE | MPOL_MF_STRICT)",
+          addr, size_to_bind);
   DIEIF(mbind(addr, size_to_bind, MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
               numa_get_mems_allowed()->size, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
         "mbind interleave failed");
@@ -156,18 +146,21 @@ void place_pages(void *addr, unsigned long len, double r) {
     return;
   // bind the remainder to the local node
   void *local_addr = ((char*) addr) + size_to_bind;
-  /*LTRACEF("mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
-          local_addr, local_len);*/
+  LTRACEF("mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
+          local_addr, local_len);
   DIEIF(mbind(local_addr, local_len, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
         "mbind local failed");
 }
 
 void place_all_pages(double r) {
-  std::vector<MappedMemorySegment> segments = get_memory_map();
+  MemoryMap segments;
   for (auto &segment: segments) {
-    // CAUTION: dont touch vsyscall or it'll crash!
-    if (segment._name == "[vsyscall]") continue;
-    place_pages(segment._startAddress, segment.length(), r);
+    if (segment.isBindable() &&        // careful with [vsyscall]
+        segment.isWriteable() &&       // lets just move writeable regions
+        segment.length() > 1ULL<<20) { // dont care about regions <1MB
+      segment.toString();
+      place_pages(segment.startAddress(), segment.length(), r);
+    }
   }
 }
 
@@ -176,11 +169,21 @@ void dump_info(void) {
   LINFOF("PAGE_MASK 0x%x", PAGE_MASK);
   LINFOF("sbrk(0): 0x%lx", sbrk(0));
   LINFOF("Program break: %p", sbrk(0));
-  std::vector<MappedMemorySegment> segments = get_memory_map();
+  MemoryMap segments;
   // place all on local node!
   for (auto &segment: segments) {
     segment.toString();
   }
+}
+
+__attribute__((constructor)) void libunstickymem_initialize(void) {
+  LINFO("Initializing");
+  dump_info();
+  pthread_create(&hw_poller_thread, NULL, hw_monitor_thread, NULL);
+}
+
+__attribute((destructor)) void libunstickymem_finalize(void) {
+  LINFO("Finalizing");
 }
 
 #ifdef __cplusplus

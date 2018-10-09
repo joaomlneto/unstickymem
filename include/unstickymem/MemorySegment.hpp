@@ -1,11 +1,11 @@
-#ifndef   MEM_STATS_H
-#define   MEM_STATS_H
+#ifndef UNSTICKYMEM_MEMORY_SEGMENT
+#define UNSTICKYMEM_MEMORY_SEGMENT
+
 #include <stdlib.h>
-#include <sys/types.h>
 #include <string>
 #include <vector>
 
-struct MappedMemorySegment {
+class MemorySegment {
   void*         _startAddress;
   void*         _endAddress;
   unsigned long _offset;
@@ -15,7 +15,12 @@ struct MappedMemorySegment {
   unsigned char _permissions;
 	std::string   _name;
 
-  MappedMemorySegment(char *unparsed_line);
+ public:
+  MemorySegment(char *unparsed_line);
+  // getters
+  void* startAddress();
+  void* endAddress();
+  std::string name();
   size_t length();
   dev_t device();
   bool isReadable();
@@ -23,9 +28,9 @@ struct MappedMemorySegment {
   bool isExecutable();
   bool isShared();
   bool isPrivate();
+  // other functions
+  bool isBindable();
   void toString();
 };
 
-std::vector<MappedMemorySegment> get_memory_map();
-
-#endif /* MEM_STATS_H */
+#endif  // UNSTICKYMEM_MEMORY_SEGMENT

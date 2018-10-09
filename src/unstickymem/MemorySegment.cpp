@@ -1,20 +1,7 @@
-#define _POSIX_C_SOURCE 200809L
-#define _BSD_SOURCE
-#include <stdlib.h>
-#include <sys/types.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include "unstickymem/mem-stats.h"
+#include "unstickymem/MemorySegment.hpp"
 #include "fpthread/Logger.hpp"
 
-#include <vector>
-#include <string>
-
-// XXX joaomlneto: stolen and adapted from:
-// https://stackoverflow.com/a/36524010/4288486
-
-MappedMemorySegment::MappedMemorySegment(char *line) {
+MemorySegment::MemorySegment(char *line) {
   int name_start = 0, name_end = 0;
   unsigned long addr_start, addr_end;
   char perms_str[8];
@@ -51,67 +38,63 @@ MappedMemorySegment::MappedMemorySegment(char *line) {
   }
 }
 
-size_t MappedMemorySegment::length() {
+void* MemorySegment::startAddress() {
+  return _startAddress;
+}
+
+void* MemorySegment::endAddress() {
+  return _endAddress;
+}
+
+std::string MemorySegment::name() {
+  return _name;
+}
+
+size_t MemorySegment::length() {
   return ((char*)_endAddress) - ((char*)_startAddress);
 }
 
-dev_t MappedMemorySegment::device() {
+dev_t MemorySegment::device() {
   return makedev(_deviceMajor, _deviceMinor);
 }
 
-bool MappedMemorySegment::isReadable() {
+bool MemorySegment::isReadable() {
   return (_permissions & 1U) != 0;
 }
 
-bool MappedMemorySegment::isWriteable() {
+bool MemorySegment::isWriteable() {
   return (_permissions & 2U) != 0;
 }
 
-bool MappedMemorySegment::isExecutable() {
+bool MemorySegment::isExecutable() {
   return (_permissions & 4U) != 0;
 }
 
-bool MappedMemorySegment::isShared() {
+bool MemorySegment::isShared() {
   return (_permissions & 8U) != 0;
 }
 
-bool MappedMemorySegment::isPrivate() {
+bool MemorySegment::isPrivate() {
   return (_permissions && 16U) != 0;
 }
 
-void MappedMemorySegment::toString() {
+void MemorySegment::toString() {
   char info[1024];
   snprintf(info, sizeof(info),
-           "[%p-%p] (%lu pages) name='%s' perms=%c%c%c%c",
-           _startAddress, _endAddress, length() / sysconf(_SC_PAGESIZE),
-           _name.c_str(),
+           "[%18p-%18p] (%5lu pages) [off=%7lu] [dev=%u:%u] [inode=%8lu] %c%c%c%c '%s'",
+           _startAddress, _endAddress,
+           length() / sysconf(_SC_PAGESIZE),
+           _offset,
+           _deviceMajor, _deviceMinor,
+           _inode,
            (isPrivate() ?    'P' : 'S'),
            (isExecutable() ? 'X' : '-'),
            (isWriteable() ?  'W' : '-'),
-           (isReadable() ?   'R' : '-'));
+           (isReadable() ?   'R' : '-'),
+           _name.c_str());
   L->printHorizontalRule(info, (isWriteable() ? 2 : 1));
 }
 
-std::vector<MappedMemorySegment> get_memory_map() {
-  std::vector<MappedMemorySegment> segments;
-  char *line = NULL;
-  size_t line_size = 0;
-
-  // open maps file
-  FILE *maps = fopen("/proc/self/maps", "r");
-  DIEIF(maps == nullptr, "error opening maps file");
-
-  // parse the maps file
-  while (getline(&line, &line_size, maps) > 0) {
-    segments.emplace_back(line);
-  }
-
-  // cleanup
-  free(line);
-  DIEIF(!feof(maps) || ferror(maps), "error parsing maps file");
-  DIEIF(fclose(maps), "error closing maps file");
-
-  //printf("done\n");
-  return segments;
+bool MemorySegment::isBindable() {
+  return name() != "[vsyscall]";
 }
-
