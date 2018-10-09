@@ -169,15 +169,7 @@ void * doWork(void *pdata) {
   
   /** Set thread affinity **/
   tid = gettid();
-  /*printf("Assigning thread %lu (tid = %d) to core %lu\n", tn->thread_no, tid,
-    tn->assigned_core);*/
-  
   set_affinity(tid, tn->assigned_core);
-  
-  if (tn->thread_no == 0) {
-    //printf("my_size: %d\n", array_size);
-    //printf("Iteration %d Starting\n", iterations);
-  }
   
   /**
      Makes sure that arrays are on different pages to prevent possible page sharing. Only usefull for small arrays.
@@ -211,19 +203,17 @@ void * doWork(void *pdata) {
   unsigned long length;
   int initialized = 0;
   
-
   for (int i=0; i < 10; i++) {
     
     if (!initialized) {
       memset(memory_to_access, 0, memory_size);
       /** wait everyone to set data and thread affinity and initialize **/
       if (pthread_barrier_wait(&barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
-        // invoke autoplacement function
-        optimize_numa_placement();
+        printf("threads initialized memory! let's go!\n");
       }
       initialized=1;
     }
-    
+
     if (pthread_barrier_wait(&barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
       printf("starting new iteration..............\n");
     }
