@@ -37,7 +37,7 @@ extern "C" {
 // how many should we ignore
 #define NUM_POLL_OUTLIERS 5
 // how long should we wait between
-#define POLL_SLEEP 200000 // 0.2s
+#define POLL_SLEEP 100000 // 0.1s
 
 static pthread_t hw_poller_thread;
 
@@ -57,6 +57,8 @@ double get_stall_rate() {
   uint64_t clock = readtsc();
   uint64_t pmc = readpmc(pmc_num);
   double stall_rate = ((double)(pmc - prev_pmcounts)) / (clock - prev_clockcounts);
+  prev_pmcounts = pmc;
+  prev_clockcounts = clock;
   return stall_rate;
 }
 
@@ -75,6 +77,11 @@ double get_average_stall_rate(size_t num_measurements,
     measurements[i] = get_stall_rate();
     usleep(usec_between_measurements);
   }
+
+  for (auto m : measurements) {
+    printf("%lf ", m);
+  }
+  printf("\n");
 
   // filter outliers
   std::sort(measurements.begin(), measurements.end());
@@ -107,22 +114,30 @@ void *hw_monitor_thread(void *arg) {
   sleep(WAIT_START);
 
   // slowly achieve awesomeness
-  while(local_ratio < 1.00) {
+  while(local_ratio <= 1.00) {
     place_all_pages(local_ratio);
     stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS);
-    LINFOF("Ratio: %1.2lf StallRate: %1.6lf (previous %1.6lf; best %1.6lf)",
+    LINFOF("Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
            local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
     // compute the minimum rate
     best_stall_rate = std::min(best_stall_rate, stall_rate);
-    if (stall_rate > best_stall_rate + 0.00005)
-      break;
+    // check if we are geting worse
+    if (stall_rate > best_stall_rate * 1.001) {
+      // just make sure that its not something transient...!
+      LINFO("Hmm... Is this the best we can do?");
+      if (get_average_stall_rate(NUM_POLLS*2, POLL_SLEEP, NUM_POLL_OUTLIERS*2)) {
+        LINFO("I guess so!");
+        break;
+      }
+    }
     prev_stall_rate = stall_rate;
     local_ratio += 0.05;
   }
 
   LINFO("My work here is done! Enjoy the speedup");
-  LINFOF("Ratio: %lf", local_ratio);
-  LINFOF("Stall Rate: %lf", prev_stall_rate);
+  LINFOF("Ratio: %1.2lf", local_ratio);
+  LINFOF("Stall Rate: %1.10lf", stall_rate);
+  LINFOF("Best Measured Stall Rate: %1.10lf", best_stall_rate);
 
   return NULL;
 }
@@ -134,7 +149,7 @@ void place_pages(void *addr, unsigned long len, double r) {
   size_to_bind &= ~PAGE_MASK;
   DIEIF(size_to_bind < 0 || size_to_bind > len,
         "that ratio does not compute!");
-  // interleave some portion
+  // interleave some portion of the memory segment between all NUMA nodes
   LTRACEF("mbind(%p, %lu, MPOL_INTERLEAVE, numa_get_mems_allowed(), MPOL_MF_MOVE | MPOL_MF_STRICT)",
           addr, size_to_bind);
   DIEIF(mbind(addr, size_to_bind, MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
@@ -158,7 +173,6 @@ void place_all_pages(double r) {
     if (segment.isBindable() &&        // careful with [vsyscall]
         segment.isWriteable() &&       // lets just move writeable regions
         segment.length() > 1ULL<<20) { // dont care about regions <1MB
-      segment.print();
       place_pages(segment.startAddress(), segment.length(), r);
     }
   }
