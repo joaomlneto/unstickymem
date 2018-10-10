@@ -30,6 +30,33 @@ target_link_libraries(unstickymem
   -lnuma
 )
 
+# 'make install' to the correct locations (provided by GNUInstallDirs)
+install(TARGETS unstickymem
+	EXPORT unstickymem_config
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# This makes the project importable from the install directory
+# Put config file in per-project dir (name MUST match), can also
+# just go into 'cmake'
+install(EXPORT unstickymem_config DESTINATION share/unstickymem/cmake)
+
+# uninstall target
+if(NOT TARGET uninstall)
+	configure_file(
+		"${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+		"${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+		IMMEDIATE @ONLY)
+	add_custom_target(uninstall
+		COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+endif()
+
+
+
+
+
+
 # gureya's benchmark
 add_executable(autobench test/autobench.c)
 target_link_libraries(autobench Threads::Threads -lnuma)
