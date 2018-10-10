@@ -20,9 +20,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include "machine.h"
-#include "timingtest.h"
-#include <unstickymem/unstickymem.h>
 
 // XXX temporary workaround for bug in numactl XXX
 // https://github.com/numactl/numactl/issues/38

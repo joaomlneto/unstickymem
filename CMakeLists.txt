@@ -31,12 +31,8 @@ target_link_libraries(unstickymem
 )
 
 # gureya's benchmark
-add_executable(bench test/bench.c)
-target_link_libraries(bench unstickymem Threads::Threads -lnuma)
-
-# gureya's benchmark linked to 'unstickymem'
 add_executable(autobench test/autobench.c)
-target_link_libraries(autobench unstickymem Threads::Threads)
+target_link_libraries(autobench Threads::Threads -lnuma)
 
 # a hello world example to show that its linking to the shared library
 add_executable(test_hello_world test/test_hello_world.c)

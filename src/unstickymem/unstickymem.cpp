@@ -113,8 +113,18 @@ void *hw_monitor_thread(void *arg) {
   get_stall_rate();
   sleep(WAIT_START);
 
+  // dump information
+  LINFOF("PAGE_SIZE %d", PAGE_SIZE);
+  LINFOF("PAGE_MASK 0x%x", PAGE_MASK);
+  LINFOF("sbrk(0): 0x%lx", sbrk(0));
+  LINFOF("Program break: %p", sbrk(0));
+  MemoryMap().print();
+
   // slowly achieve awesomeness
-  while(local_ratio <= 1.00) {
+  for (uint64_t local_percentage = 100 / numa_num_configured_nodes();
+       local_percentage <= 100;
+       local_percentage += 5) {
+    local_ratio = ((double) local_percentage) / 100;
     place_all_pages(local_ratio);
     stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS);
     LINFOF("Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
@@ -134,11 +144,11 @@ void *hw_monitor_thread(void *arg) {
     local_ratio += 0.05;
   }
 
+
   LINFO("My work here is done! Enjoy the speedup");
   LINFOF("Ratio: %1.2lf", local_ratio);
   LINFOF("Stall Rate: %1.10lf", stall_rate);
   LINFOF("Best Measured Stall Rate: %1.10lf", best_stall_rate);
-
   return NULL;
 }
 
@@ -189,12 +199,13 @@ void dump_info(void) {
 
 __attribute__((constructor)) void libunstickymem_initialize(void) {
   LINFO("Initializing");
-  dump_info();
   pthread_create(&hw_poller_thread, NULL, hw_monitor_thread, NULL);
+  LINFO("Initialized");
 }
 
 __attribute((destructor)) void libunstickymem_finalize(void) {
   LINFO("Finalizing");
+  LINFO("Finalized");
 }
 
 #ifdef __cplusplus
