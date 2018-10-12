@@ -1,6 +1,6 @@
 /**
  * Copyright 2018 João Neto
- * This is the shared runtime state between the different threads
+ * A simple yet fancy logger
  **/
 #include "fpthread/Logger.hpp"
 

@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <unstickymem/unstickymem.h>
 
 // XXX temporary workaround for bug in numactl XXX
 // https://github.com/numactl/numactl/issues/38
@@ -264,6 +265,8 @@ void usage(char * app_name) {
 int main(int argc, char *argv[]) {
   
   int i, x;
+
+  unstickymem();
   
   ncpus = get_nprocs();
   nnodes = numa_num_configured_nodes();

@@ -6,7 +6,7 @@ project(unstickymem VERSION 0.1.0 LANGUAGES CXX C)
 include(GNUInstallDirs)
 include(CTest)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # require pthreads
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
@@ -59,7 +59,7 @@ endif()
 
 # gureya's benchmark
 add_executable(autobench test/autobench.c)
-target_link_libraries(autobench Threads::Threads -lnuma)
+target_link_libraries(autobench unstickymem Threads::Threads -lnuma)
 
 # a hello world example to show that its linking to the shared library
 add_executable(test_hello_world test/test_hello_world.c)

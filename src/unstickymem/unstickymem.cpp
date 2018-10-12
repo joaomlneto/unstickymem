@@ -39,6 +39,10 @@ extern "C" {
 // how long should we wait between
 #define POLL_SLEEP 100000 // 0.1s
 
+static bool OPT_SCAN = false;
+static bool OPT_FIXED_RATIO = false;
+static double OPT_FIXED_RATIO_VALUE = 0.0;
+
 static pthread_t hw_poller_thread;
 
 // sample the HW counters and get the stall rate (since last measurement)
@@ -120,6 +124,16 @@ void *hw_monitor_thread(void *arg) {
   LINFOF("Program break: %p", sbrk(0));
   MemoryMap().print();
 
+  if (OPT_FIXED_RATIO) {
+    while(1) {
+      LINFOF("Fixed Ratio selected. Placing %lf in local node.", OPT_FIXED_RATIO_VALUE);
+      place_all_pages(OPT_FIXED_RATIO_VALUE);
+      usleep(NUM_POLLS * POLL_SLEEP);
+      pthread_exit(0);
+    }
+    exit(-1);
+  }
+
   // slowly achieve awesomeness
   for (uint64_t local_percentage = 100 / numa_num_configured_nodes();
        local_percentage <= 100;
@@ -132,7 +146,7 @@ void *hw_monitor_thread(void *arg) {
     // compute the minimum rate
     best_stall_rate = std::min(best_stall_rate, stall_rate);
     // check if we are geting worse
-    if (stall_rate > best_stall_rate * 1.001) {
+    if (!OPT_SCAN && stall_rate > best_stall_rate * 1.001) {
       // just make sure that its not something transient...!
       LINFO("Hmm... Is this the best we can do?");
       if (get_average_stall_rate(NUM_POLLS*2, POLL_SLEEP, NUM_POLL_OUTLIERS*2)) {
@@ -197,8 +211,26 @@ void dump_info(void) {
   segments.print();
 }
 
+void read_config(void) {
+  OPT_SCAN = std::getenv("UNSTICKYMEM_SCAN") != nullptr;
+  OPT_FIXED_RATIO = std::getenv("UNSTICKYMEM_FIXED_RATIO") != nullptr;
+  if (OPT_FIXED_RATIO) {
+    OPT_FIXED_RATIO_VALUE = std::stod(std::getenv("UNSTICKYMEM_FIXED_RATIO"));
+  }
+}
+
+void print_config(void) {
+  LINFOF("scan mode: %s", OPT_SCAN ? "yes" : "no");
+  LINFOF("fixed ratio: %s",
+         OPT_FIXED_RATIO ? std::to_string(OPT_FIXED_RATIO_VALUE).c_str()
+                         : "no");
+  LINFO("done");
+}
+
 __attribute__((constructor)) void libunstickymem_initialize(void) {
   LINFO("Initializing");
+  read_config();
+  print_config();
   pthread_create(&hw_poller_thread, NULL, hw_monitor_thread, NULL);
   LINFO("Initialized");
 }
@@ -206,6 +238,10 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
 __attribute((destructor)) void libunstickymem_finalize(void) {
   LINFO("Finalizing");
   LINFO("Finalized");
+}
+
+void unstickymem(void) {
+  LINFO("unstickymem!");
 }
 
 #ifdef __cplusplus
