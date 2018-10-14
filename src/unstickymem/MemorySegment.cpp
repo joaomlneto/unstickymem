@@ -1,6 +1,8 @@
 #include "unstickymem/MemorySegment.hpp"
 #include "fpthread/Logger.hpp"
 
+namespace unstickymem {
+
 MemorySegment::MemorySegment(char *line) {
   int name_start = 0, name_end = 0;
   unsigned long addr_start, addr_end;
@@ -118,3 +120,5 @@ bool MemorySegment::isStack() {
 bool MemorySegment::isAnonymous() {
   return name().length() == 0;
 }
+
+}  // namespace unstickymem

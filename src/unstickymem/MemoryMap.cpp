@@ -1,6 +1,8 @@
 #include "unstickymem/MemoryMap.hpp"
 #include "fpthread/Logger.hpp"
 
+namespace unstickymem {
+
 MemoryMap::MemoryMap() {
   char *line = NULL;
   size_t line_size = 0;
@@ -25,3 +27,5 @@ void MemoryMap::print() {
     segment.print();
   }
 }
+
+}  // namespace unstickymem

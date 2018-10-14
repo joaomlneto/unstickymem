@@ -7,9 +7,7 @@
 extern "C" {
 #endif
 
-void unstickymem(void);
-void place_pages(void *addr, unsigned long len, double ratio);
-void place_all_pages(double ratio);
+void unstickymem_nop(void);
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+namespace unstickymem {
+
 class MemorySegment {
   void*         _startAddress;
   void*         _endAddress;
@@ -36,5 +38,7 @@ class MemorySegment {
   bool isStack();
   void print();
 };
+
+}  // namespace unstickymem
 
 #endif  // UNSTICKYMEM_MEMORY_SEGMENT

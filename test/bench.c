@@ -201,7 +201,7 @@ void * doWork(void *pdata) {
   unsigned long length;
   int initialized = 0;
   
-  for (int i=0; i < 10; i++) {
+  for (int i=0; i < 3; i++) {
     
     if (!initialized) {
       memset(memory_to_access, 0, memory_size);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
   
   int i, x;
 
-  unstickymem_nop();
+  unstickymem();
   
   ncpus = get_nprocs();
   nnodes = numa_num_configured_nodes();

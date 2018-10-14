@@ -18,7 +18,7 @@ file(GLOB_RECURSE unstickymem_src relative ${CMAKE_CURRENT_SOURCE_DIR} "src/*.cp
 add_library(unstickymem SHARED ${unstickymem_src})
 
 set_property(TARGET unstickymem PROPERTY POSITION_INDEPENDENT_CODE on)
-target_compile_options(unstickymem PRIVATE -g -Wall -pedantic -Wshadow -Wfatal-errors -Werror)
+target_compile_options(unstickymem PRIVATE -g -Wall -pedantic -Wshadow -Wfatal-errors)
 
 target_include_directories(unstickymem
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

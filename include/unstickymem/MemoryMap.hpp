@@ -3,6 +3,8 @@
 
 #include "unstickymem/MemorySegment.hpp"
 
+namespace unstickymem {
+
 class MemoryMap : private std::vector<MemorySegment> {
  public:
   MemoryMap();
@@ -14,5 +16,7 @@ class MemoryMap : private std::vector<MemorySegment> {
   using vector::end;
 
 };
+
+}  // namespace unstickymem
 
 #endif  // UNSTICKYMEM_MEMORY_MAP

@@ -2,8 +2,8 @@
  * Copyright 2018 João Neto
  * A simple informative logger
  **/
-#ifndef FPTHREADS_INCLUDE_FPTHREAD_LOGGER_HPP_
-#define FPTHREADS_INCLUDE_FPTHREAD_LOGGER_HPP_
+#ifndef UNSTICKYMEM_LOGGER_HPP_
+#define UNSTICKYMEM_LOGGER_HPP_
 
 #include <unistd.h>
 
@@ -56,7 +56,7 @@
     }\
   } while (0)
 
-namespace fpthread {
+namespace unstickymem {
 
 BETTER_ENUM(LogLevel, int, TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF)
 
@@ -154,7 +154,7 @@ class Logger {
   }
 
  private:
-  LogLevel _loglevel = LogLevel::DEBUG;
+  LogLevel _loglevel = LogLevel::TRACE;
 
   inline bool should_log(LogLevel lvl) {
     return lvl >= _loglevel;
@@ -194,8 +194,8 @@ class Logger {
   }
 };
 
-}  // namespace fpthread
+}  // namespace unstickymem
 
-extern fpthread::Logger* L;
+extern unstickymem::Logger* L;
 
-#endif  // FPTHREADS_INCLUDE_FPTHREAD_LOGGER_HPP_
+#endif  // UNSTICKYMEM_LOGGER_HPP_
