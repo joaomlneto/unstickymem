@@ -60,8 +60,9 @@ void force_uniform_interleave(MemorySegment &segment) {
 	                         segment.length());
 }
 
+/*
 void place_pages2(MemorySegment &segment, double ratios[], int ratios_size) {
-  /*void *addr = segment.startAddress();*/
+  //void *addr = segment.startAddress();
   unsigned long len = segment.length();
   // validate input
   DIEIF(ratios_size != numa_num_configured_nodes(),
@@ -98,13 +99,18 @@ void place_pages2(MemorySegment &segment, double ratio) {
   std::cout << std::endl;
   place_pages2(segment, ratios.data(), ratios.size());
 }
+*/
 
 void place_pages(void *addr, unsigned long len, double r) {
-  double local_ratio = r - (1 - r) / (numa_num_configured_nodes() - 1);
-  double interleave_ratio = 1 - local_ratio;
+	// compute the ratios to input to `mbind`
+  double local_ratio = r - (1.0 - r) / (numa_num_configured_nodes() - 1);
+  double interleave_ratio = 1.0 - local_ratio;
+	// compute the lengths of the interleaved and local segments
   unsigned long interleave_len = interleave_ratio * len;
   interleave_len &= ~PAGE_MASK;
   unsigned long local_len = len - interleave_len;
+	// the starting address for the local segment
+  void *local_addr = ((char*) addr) + interleave_len;
 
 	// validate input
   DIEIF(r < 0.0 || r > 1.0, "that ratio does not compute!");
@@ -112,19 +118,16 @@ void place_pages(void *addr, unsigned long len, double r) {
 
   // interleave some portion of the memory segment between all NUMA nodes
   /*LTRACEF("mbind(%p, %lu, MPOL_INTERLEAVE, numa_get_mems_allowed(), MPOL_MF_MOVE | MPOL_MF_STRICT)",
-          addr, size_to_bind);*/
+          addr, interleave_len);
   DIEIF(mbind(addr, interleave_len, MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
-              numa_get_mems_allowed()->size, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
-        "mbind interleave failed");
+              numa_get_mems_allowed()->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+        "mbind interleave failed");*/
 
 	// check if there is something left to bind to local
-	double local_percentage = (double)local_len / len * 100;
-	LINFOF("local = %lu (%.1lf%%) interleave = %lu", local_len, local_percentage, interleave_len);
   if (local_len <= 0)
     return;
 
 	// bind the remainder to the local node
-  void *local_addr = ((char*) addr) + interleave_len;
   LTRACEF("mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
           local_addr, local_len);
   DIEIF(mbind(local_addr, local_len, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
@@ -132,21 +135,25 @@ void place_pages(void *addr, unsigned long len, double r) {
 }
 
 void place_pages(MemorySegment &segment, double ratio) {
-  LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
+  // LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
   DIEIF(!segment.isBindable(), "trying to bind non-bindable segment!");
   place_pages(segment.startAddress(), segment.length(), ratio);
 }
 
-void place_all_pages(double r) {
-	LDEBUGF("place_pages with local ratio %lf", r);
+void place_all_pages(MemoryMap &segments, double ratio) {
+	for (auto &segment: segments) {
+		if (segment.isBindable() &&
+		    segment.isWriteable() &&
+			  segment.length() > 1ULL<<20) {
+			place_pages(segment, ratio);
+		}
+	}
+}
+
+void place_all_pages(double ratio) {
+	LDEBUGF("place_pages with local ratio %lf", ratio);
   MemoryMap segments;
-  for (auto &segment: segments) {
-    if (segment.isBindable() &&        // careful with [vsyscall]
-        segment.isWriteable() &&       // lets just move writeable regions
-        segment.length() > 1ULL<<20) { // dont care about regions <1MB
-      place_pages(segment, r);
-    }
-  }
+	place_all_pages(segments, ratio);
 }
 
 }  // namespace unstickymem

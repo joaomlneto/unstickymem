@@ -4,6 +4,7 @@
 #include <numaif.h>
 #include <numa.h>
 
+#include "unstickymem/MemoryMap.hpp"
 #include "unstickymem/MemorySegment.hpp"
 
 #define PAGE_ALIGN_DOWN(x) (((intptr_t) (x)) & ~PAGE_MASK)
@@ -22,8 +23,9 @@ static const int PAGE_MASK = PAGE_SIZE - 1;
 
 void force_uniform_interleave(char *addr, unsigned long len);
 void force_uniform_interleave(MemorySegment &segment);
-void place_pages(void *addr, unsigned long len, double r);
-void place_all_pages(double r);
+void place_pages(void *addr, unsigned long len, double ratio);
+void place_all_pages(MemoryMap &segments, double ratio);
+void place_all_pages(double ratio);
 
 }  // namespace unstickymem
 
