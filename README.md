@@ -1,5 +1,7 @@
 # unstickymem
 
+[![Build Status](https://travis-ci.com/joaomlneto/unstickymem.svg?token=QsVQsaqyQNrgjyTyzV4W&branch=master)](https://travis-ci.com/joaomlneto/unstickymem)
+
 A library for dynamic page placement in NUMA nodes.
 
 ## What does it do?
