@@ -1,5 +1,5 @@
 #include "unstickymem/MemorySegment.hpp"
-#include "fpthread/Logger.hpp"
+#include "unstickymem/Logger.hpp"
 
 namespace unstickymem {
 

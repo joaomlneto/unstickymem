@@ -51,7 +51,7 @@ void *hw_monitor_thread(void *arg) {
         "could not set affinity for hw monitor thread");
 
   // lets wait a bit before starting the process
-  get_stall_rate();
+  get_stall_rate2();
   sleep(WAIT_START);
 
   // dump mapping information
@@ -69,13 +69,13 @@ void *hw_monitor_thread(void *arg) {
   }
 
   // slowly achieve awesomeness
-  for (uint64_t local_percentage = 100 / numa_num_configured_nodes();
+  for (uint64_t local_percentage = 15;
        local_percentage <= 100;
        local_percentage += 5) {
     local_ratio = ((double) local_percentage) / 100;
     LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
     place_all_pages(segments, local_ratio);
-    stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS);
+    stall_rate = get_average_stall_rate2(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS);
     LINFOF("Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
            local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
 		/*std::string s = std::to_string(stall_rate);
@@ -87,7 +87,7 @@ void *hw_monitor_thread(void *arg) {
     if (!OPT_SCAN && stall_rate > best_stall_rate * 1.001) {
       // just make sure that its not something transient...!
       LINFO("Hmm... Is this the best we can do?");
-      if (get_average_stall_rate(NUM_POLLS*2, POLL_SLEEP, NUM_POLL_OUTLIERS*2)) {
+      if (get_average_stall_rate2(NUM_POLLS*2, POLL_SLEEP, NUM_POLL_OUTLIERS*2)) {
         LINFO("I guess so!");
         break;
       }
