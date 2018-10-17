@@ -32,17 +32,6 @@ matrix:
             - libnuma-dev
             - libstdc++-8-dev
             - clang-6.0
-    - name: "clang 5"
-      env: MATRIX_ENV="CC=clang-5.0 CXX=clang++-5.0"
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
-          packages:
-            - libnuma-dev
-            - libstdc++-8-dev
-            - clang-5.0
 
 env:
   global:
