@@ -69,7 +69,7 @@ void *hw_monitor_thread(void *arg) {
   }
 
   // slowly achieve awesomeness
-  for (uint64_t local_percentage = 15;
+  for (uint64_t local_percentage = 100 / numa_num_configured_nodes();
        local_percentage <= 100;
        local_percentage += 5) {
     local_ratio = ((double) local_percentage) / 100;
