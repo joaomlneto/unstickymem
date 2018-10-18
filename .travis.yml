@@ -21,6 +21,15 @@ matrix:
           packages:
             - libnuma-dev
             - g++-7
+    - name: "gcc 6"
+      env: MATRIX_ENV="CC=gcc-6 CXX=g++-6"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - libnuma-dev
+            - g++-6
     - name: "clang 6"
       env: MATRIX_ENV="CC=clang-6.0 CXX=clang++-6.0"
       addons:
