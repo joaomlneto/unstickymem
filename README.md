@@ -23,19 +23,31 @@ We assume that the loss in memory bandwidth is compensated with a lower access
 latency.
 
 ## How do I use it?
-1. `cmake .` to generate a Makefile.
-  - We require `cmake` version 3.5 or later
-  - We have used `gcc-8` during testing. Older versions of `gcc` have not been
-tested.
+
+### Pre-requisites
+
+- `cmake` -- version 3.5 or newer
+- A modern C++ compiler
+  - We have used `gcc` 8 during our testing
+  - `gcc` from version 6 compiles the program, but binaries haven't been tested
+  - `clang` from version 6 compiles the program, but binaries haven't been tested
+- `libnuma-dev` -- for the `numa.h` and `libnuma.h` headers
+
+### Compiling
+
+1. `cmake .` to generate a Makefile
 2. `make` to build the library and tests
 
-You can use the library with and without modifying your program.
-###### Without modifying the program
+### Using
+
+You can opt to use the library with or without modifying your program.
+
+#### Without modifying the program
 Preload the library to run alongside your program via `LD_PRELOAD`:
 
 ```LD_PRELOAD=/path/to/libunstickymem.so ./myProgram```
 
-###### With program modification
+#### With program modification
 1. Include the library header in your program:
   - `#include <unstickymem/unstickymem.h>`
 2. Call at least one function (otherwise `gcc` won't bother to actually include
@@ -66,7 +78,7 @@ This will set a fixed ratio of pages to be placed in the worker nodes. This
 disables the tuning procedure.
 
 ## A tour of the source tree
-- We are using [`CMake`](https://cmake.org) build system for this library.
+- We are using the [`CMake`](https://cmake.org) build system for this library.
 - `src` contains all source files
 - `include` contains all header files. Each library uses its own subfolder in
 order to reduce collisions when installed in a system (following the [Google
