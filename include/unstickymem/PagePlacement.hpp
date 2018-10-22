@@ -7,13 +7,13 @@
 #include "unstickymem/MemoryMap.hpp"
 #include "unstickymem/MemorySegment.hpp"
 
-#define PAGE_ALIGN_DOWN(x) (((intptr_t) (x)) & ~PAGE_MASK)
-#define PAGE_ALIGN_UP(x) ((((intptr_t) (x)) + PAGE_MASK) & ~PAGE_MASK)
+#define PAGE_ALIGN_DOWN(x) (((intptr_t) (x)) & PAGE_MASK)
+#define PAGE_ALIGN_UP(x) ((((intptr_t) (x)) + ~PAGE_MASK) & PAGE_MASK)
 
 namespace unstickymem {
 
 static const int PAGE_SIZE = sysconf(_SC_PAGESIZE);
-static const int PAGE_MASK = PAGE_SIZE - 1;
+static const int PAGE_MASK = (~(PAGE_SIZE - 1));
 
 // XXX temporary workaround for bug in numactl XXX
 // https://github.com/numactl/numactl/issues/38

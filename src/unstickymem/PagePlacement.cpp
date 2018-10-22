@@ -107,14 +107,29 @@ void place_pages(void *addr, unsigned long len, double r) {
   double interleave_ratio = 1.0 - local_ratio;
 	// compute the lengths of the interleaved and local segments
   unsigned long interleave_len = interleave_ratio * len;
+<<<<<<< HEAD
   interleave_len &= ~PAGE_MASK;
   unsigned long local_len = len - interleave_len;
+=======
+  interleave_len &= PAGE_MASK;
+  unsigned long local_len = (len - interleave_len) & PAGE_MASK;
+>>>>>>> 93117c1... extra checks in PagePlacement
 	// the starting address for the local segment
   void *local_addr = ((char*) addr) + interleave_len;
 
 	// validate input
-  DIEIF(r < 0.0 || r > 1.0, "that ratio does not compute!");
-	DIEIF(len % PAGE_SIZE != 0, "len must be multiple of the page size");
+  DIEIF(r < 0.0 || r > 1.0,
+		    "specified ratio must be between 0 and 1!");
+	DIEIF(local_ratio < 0.0 || local_ratio > 1.0,
+		    "bad local_ratio calculation");
+	DIEIF(interleave_ratio < 0.0 || interleave_ratio > 1.0,
+		    "bad interleave_ratio calculation");
+	DIEIF(local_len % PAGE_SIZE != 0,
+	      "local length must be multiple of the page size");
+	DIEIF(interleave_len % PAGE_SIZE != 0,
+	      "interleave length must be multiple of the page size");
+	DIEIF((local_len + interleave_len) != (len & PAGE_MASK),
+	      "local and interleave lengths should total the original length");
 
   // interleave some portion of the memory segment between all NUMA nodes
   /*LTRACEF("mbind(%p, %lu, MPOL_INTERLEAVE, numa_get_mems_allowed(), MPOL_MF_MOVE | MPOL_MF_STRICT)",
