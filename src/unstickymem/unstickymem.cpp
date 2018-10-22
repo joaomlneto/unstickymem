@@ -71,7 +71,7 @@ void *hw_monitor_thread(void *arg) {
 	}
 
 	// slowly achieve awesomeness
-	for (uint64_t local_percentage = 100 / numa_num_configured_nodes();
+	for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5 * 5;
 			local_percentage <= 100; local_percentage += 5) {
 		local_ratio = ((double) local_percentage) / 100;
 		LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
