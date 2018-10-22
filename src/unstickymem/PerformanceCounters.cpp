@@ -20,6 +20,14 @@ uint64_t count;
 int fd;
 static bool initiatialized = false;
 
+static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
+		int cpu, int group_fd, unsigned long flags) {
+	int ret;
+
+	ret = syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
+	return ret;
+}
+
 // checks performance counters and computes stalls per second since last call
 double get_stall_rate() {
 	const int pmc_num = 0x00000000; // program counter monitor number
