@@ -34,25 +34,3 @@ do
   run_cmd "/usr/bin/time -f%e numactl --physcpubind=${cpus[$i]} $@"
 	unset UNSTICKYMEM_SCAN
 done
-
-
-
-
-
-
-
-
-
-
-for (( i=0; i<${#cpus[@]}; i++ ));
-do
-	for (( j=0; j<${#ratios[@]}; j++ ));
-  do
-	  echo -e "${red}Cores: ${cpus[$i]}\tratio: ${ratios[$j]}${reset}"
-    export UNSTICKYMEM_FIXED_RATIO=${ratios[$j]}
-    echo -e "${red}UNSTICKYMEM_FIXED_RATIO=${UNSTICKYMEM_FIXED_RATIO}${reset}"
-	  #run_cmd "/usr/bin/time -f%e ./autobench -c ${cpus[$i]}"
-	  run_cmd "/usr/bin/time -f%e numactl --physcpubind=${cpus[$i]} $@"
-    unset UNSTICKYMEM_FIXED_RATIO
-  done
-done
