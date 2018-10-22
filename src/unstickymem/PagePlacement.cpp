@@ -107,13 +107,8 @@ void place_pages(void *addr, unsigned long len, double r) {
   double interleave_ratio = 1.0 - local_ratio;
 	// compute the lengths of the interleaved and local segments
   unsigned long interleave_len = interleave_ratio * len;
-<<<<<<< HEAD
-  interleave_len &= ~PAGE_MASK;
-  unsigned long local_len = len - interleave_len;
-=======
   interleave_len &= PAGE_MASK;
   unsigned long local_len = (len - interleave_len) & PAGE_MASK;
->>>>>>> 93117c1... extra checks in PagePlacement
 	// the starting address for the local segment
   void *local_addr = ((char*) addr) + interleave_len;
 
