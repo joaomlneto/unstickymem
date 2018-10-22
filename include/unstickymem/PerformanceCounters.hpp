@@ -7,7 +7,10 @@ namespace unstickymem {
 
 // checks performance counters and computes stalls per second since last call
 double get_stall_rate();  // via joao barreto's lib
-double get_stall_rate2(); // via perf_event_open
+
+//via perf_event_open
+double get_stall_rate_v1(); // via perf_event_open
+
 
 // samples stall rate multiple times and filters outliers
 double get_average_stall_rate(size_t     num_measurements,
