@@ -61,7 +61,7 @@ double get_stall_rate_v2() {
 
 	//char estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
 	char estr[] = "CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
-	if (!initialized) {
+	if (!initiatialized) {
 		//perfmon_setVerbosity(3);
 		//Load the topology module and print some values.
 		err = topology_init();
@@ -136,7 +136,7 @@ double get_stall_rate_v2() {
 			exit(1);
 			//return 1;
 		}
-		initialized = true;
+		initiatialized = true;
 		//printf("Setting up Likwid statistics for the first time\n");
 	}
 

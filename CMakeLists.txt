@@ -28,7 +28,7 @@ target_include_directories(unstickymem
 target_link_libraries(unstickymem
 	Threads::Threads
   -lnuma
-  ../likwid/liblikwid.so
+  /home/dgureya/likwid/liblikwid.so
 )
 
 # 'make install' to the correct locations (provided by GNUInstallDirs)
