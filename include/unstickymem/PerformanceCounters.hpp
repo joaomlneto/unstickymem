@@ -11,14 +11,14 @@ double get_stall_rate();  // via joao barreto's lib
 //via perf_event_open
 double get_stall_rate_v1(); // via perf_event_open
 
+double get_stall_rate_v2(); // via Like I Knew What I'm Doing (LIKWID Library!)
+void stop_all_counters(); // Restarting it might have some issues if counters are not stopped!
 
 // samples stall rate multiple times and filters outliers
-double get_average_stall_rate(size_t     num_measurements,
-                              useconds_t usec_between_measurements,
-                              size_t     num_outliers_to_filter);
-double get_average_stall_rate2(size_t     num_measurements,
-                               useconds_t usec_between_measurements,
-                               size_t     num_outliers_to_filter);
+double get_average_stall_rate(size_t num_measurements,
+		useconds_t usec_between_measurements, size_t num_outliers_to_filter);
+double get_average_stall_rate2(size_t num_measurements,
+		useconds_t usec_between_measurements, size_t num_outliers_to_filter);
 
 // read time stamp counter
 inline uint64_t readtsc(void);

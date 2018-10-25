@@ -52,7 +52,8 @@ void *hw_monitor_thread(void *arg) {
 
 	// lets wait a bit before starting the process
 	//get_stall_rate();
-	get_stall_rate_v1();
+	//get_stall_rate_v1();
+	get_stall_rate_v2();
 	sleep(WAIT_START);
 
 	// dump mapping information
@@ -71,13 +72,13 @@ void *hw_monitor_thread(void *arg) {
 	}
 
 	// slowly achieve awesomeness
-	for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5 * 5;
-			local_percentage <= 100; local_percentage += 5) {
+	for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5
+			* 5; local_percentage <= 100; local_percentage += 5) {
 		local_ratio = ((double) local_percentage) / 100;
 		LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
 		place_all_pages(segments, local_ratio);
 		stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
-				NUM_POLL_OUTLIERS);
+		NUM_POLL_OUTLIERS);
 		LINFOF(
 				"Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
 				local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
@@ -91,7 +92,7 @@ void *hw_monitor_thread(void *arg) {
 			// just make sure that its not something transient...!
 			LINFO("Hmm... Is this the best we can do?");
 			if (get_average_stall_rate(NUM_POLLS * 2, POLL_SLEEP,
-					NUM_POLL_OUTLIERS * 2)) {
+			NUM_POLL_OUTLIERS * 2)) {
 				LINFO("I guess so!");
 				break;
 			}
@@ -164,6 +165,8 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
 
 // library destructor
 __attribute((destructor)) void libunstickymem_finalize(void) {
+	//stop all the counters
+	stop_all_counters();
 	//LINFO("Finalizing");
 	LINFO("Finalized");
 }
