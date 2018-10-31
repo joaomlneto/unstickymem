@@ -65,7 +65,8 @@ void *hw_monitor_thread(void *arg) {
 			LINFOF("Fixed Ratio selected. Placing %lf in local node.",
 					OPT_FIXED_RATIO_VALUE);
 			place_all_pages(OPT_FIXED_RATIO_VALUE);
-			usleep(NUM_POLLS * POLL_SLEEP);
+			fprintf(stderr, "measured stall rate: %lf\n",
+			        get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS));
 			pthread_exit(0);
 		}
 		exit(-1);

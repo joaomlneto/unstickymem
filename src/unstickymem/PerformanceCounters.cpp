@@ -57,7 +57,7 @@ double get_stall_rate_v2() {
 
 	static double prev_cycles = 0;
 	static double prev_stalls = 0;
-	//static uint64_t prev_clockcounts = 0;
+	static uint64_t prev_clockcounts = 0;
 
 	//char estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
 	char estr[] = "CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
@@ -175,6 +175,8 @@ double get_stall_rate_v2() {
 	//uint64_t clock = readtsc(); // read clock
 
 	double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);
+	//double stall_rate = ((double) (stalls - prev_stalls))
+	//		/ (clock - prev_clockcounts);
 	prev_cycles = cycles;
 	prev_stalls = stalls;
 	//prev_clockcounts = clock;
