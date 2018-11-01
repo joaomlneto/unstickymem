@@ -14,6 +14,9 @@
 
 #include <likwid.h>
 
+//format specifiers for the intN_t types
+#include <inttypes.h>
+
 namespace unstickymem {
 
 //perf_event_open variables
@@ -50,6 +53,7 @@ static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
 int err;
 int* cpus;
 int gid;
+CpuInfo_t info;
 
 double get_stall_rate_v2() {
 	int i, j;
@@ -59,8 +63,11 @@ double get_stall_rate_v2() {
 	static double prev_stalls = 0;
 	static uint64_t prev_clockcounts = 0;
 
-	//char estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
-	char estr[] = "CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
+	//list of all the events for the different architectures supported
+	char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
+	char intel_estr[] =
+			"CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
+
 	if (!initiatialized) {
 		//perfmon_setVerbosity(3);
 		//Load the topology module and print some values.
@@ -71,7 +78,8 @@ double get_stall_rate_v2() {
 			exit(1);
 		}
 		// CpuInfo_t contains global information like name, CPU family, ...
-		CpuInfo_t info = get_cpuInfo();
+		//CpuInfo_t info = get_cpuInfo();
+		info = get_cpuInfo();
 		// CpuTopology_t contains information about the topology of the CPUs.
 		CpuTopology_t topo = get_cpuTopology();
 		// Create affinity domains. Commonly only needed when reading Uncore counters
@@ -103,12 +111,32 @@ double get_stall_rate_v2() {
 			exit(1);
 		}
 
+		//pick the right event based on the architecture,
+		//currently works on AMD {amd64_fam15h_interlagos && amd64_fam10h_istanbul}
+		//and INTEL {Intel Broadwell EP}
+		printf("Short name of the CPU: %s\n", info->short_name);
+		printf("Intel flag: %d\n", info->isIntel);
+		printf("CPU family ID: %"PRIu32"\n", info->family);
 		// Add eventset string to the perfmon module.
-		gid = perfmon_addEventSet(estr);
+		//for broadwellEP, probably all intel machines!
+		if (strcmp("broadwellEP", info->short_name) == 0) {
+			printf("Setting up events %s for %s\n", intel_estr,
+					info->short_name);
+			gid = perfmon_addEventSet(intel_estr);
+		}
+		//for AMD!
+		else if (strcmp("amd", info->short_name) == 0) {
+			printf("Setting up events %s for %s\n", amd_estr, info->short_name);
+			gid = perfmon_addEventSet(amd_estr);
+		} else {
+			printf("Unsupported Architecture at the moment\n");
+			exit(1);
+		}
+
 		if (gid < 0) {
 			printf(
 					"Failed to add event string %s to LIKWID's performance monitoring module\n",
-					estr);
+					intel_estr);
 			perfmon_finalize();
 			topology_finalize();
 			//return 1;
@@ -153,10 +181,21 @@ double get_stall_rate_v2() {
 
 	// Read the result of every thread/CPU for all events in estr.
 	// For now just read/print for CPU 0
-	char* ptr = strtok(estr, ",");
 	double cycles = 0;
 	double stalls = 0;
 	j = 0;
+	char* ptr = NULL;
+	//Results depending on the architecture!
+	if (strcmp("broadwellEP", info->short_name) == 0) {
+		ptr = strtok(intel_estr, ",");
+	} else if (strcmp("amd", info->short_name) == 0) {
+		ptr = strtok(amd_estr, ",");
+	} else {
+		printf(
+				"Error: Something went wrong, can't get the measurements at the moment!\n");
+		exit(1);
+	}
+
 	while (ptr != NULL) {
 		for (i = 0; i < 1; i++) {
 			result = perfmon_getResult(gid, j, i);
@@ -173,7 +212,6 @@ double get_stall_rate_v2() {
 	}
 
 	//uint64_t clock = readtsc(); // read clock
-
 	double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);
 	//double stall_rate = ((double) (stalls - prev_stalls))
 	//		/ (clock - prev_clockcounts);
@@ -216,10 +254,10 @@ void stop_all_counters() {
 // checks performance counters and computes stalls per second since last call
 double get_stall_rate() {
 	const int pmc_num = 0x00000000; // program counter monitor number
-	//static bool initialized = false;
+//static bool initialized = false;
 	static uint64_t prev_clockcounts = 0;
 	static uint64_t prev_pmcounts = 0;
-	// wait a bit to get a baseline first time function is called
+// wait a bit to get a baseline first time function is called
 	/*if (!initialized) {
 	 prev_clockcounts = readtsc();
 	 prev_pmcounts = readpmc(pmc_num);
@@ -269,7 +307,7 @@ double get_stall_rate_v1() {
 
 	double stall_rate = (double) count;
 	//double stall_rate = ((double) (count - prev_pmcounts))
-	//		/ (clock - prev_clockcounts);
+	/// (clock - prev_clockcounts);
 
 	prev_clockcounts = clock;
 	prev_pmcounts = count;
@@ -285,13 +323,13 @@ double get_average_stall_rate(size_t num_measurements,
 		useconds_t usec_between_measurements, size_t num_outliers_to_filter) {
 	std::vector<double> measurements(num_measurements);
 
-	// throw away a measurement, just because
-	//get_stall_rate();
-	//get_stall_rate_v1();
+// throw away a measurement, just because
+//get_stall_rate();
+//get_stall_rate_v1();
 	get_stall_rate_v2();
 	usleep(usec_between_measurements);
 
-	// do N measurements, T usec apart
+// do N measurements, T usec apart
 	for (size_t i = 0; i < num_measurements; i++) {
 		//measurements[i] = get_stall_rate();
 		//measurements[i] = get_stall_rate_v1();
@@ -304,14 +342,14 @@ double get_average_stall_rate(size_t num_measurements,
 	}
 	std::cout << std::endl;
 
-	// filter outliers
+// filter outliers
 	std::sort(measurements.begin(), measurements.end());
 	measurements.erase(measurements.end() - num_outliers_to_filter,
 			measurements.end());
 	measurements.erase(measurements.begin(),
 			measurements.begin() + num_outliers_to_filter);
 
-	// return the average
+// return the average
 	double sum = std::accumulate(measurements.begin(), measurements.end(), 0.0);
 	return sum / measurements.size();
 }
