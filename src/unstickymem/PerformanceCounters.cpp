@@ -112,20 +112,21 @@ double get_stall_rate_v2() {
 		}
 
 		//pick the right event based on the architecture,
-		//currently works on AMD {amd64_fam15h_interlagos && amd64_fam10h_istanbul}
+		//currently tested on AMD {amd64_fam15h_interlagos && amd64_fam10h_istanbul}
 		//and INTEL {Intel Broadwell EP}
+		//uses a simple flag to do this, may use the more accurate cpu names or families
 		printf("Short name of the CPU: %s\n", info->short_name);
 		printf("Intel flag: %d\n", info->isIntel);
 		printf("CPU family ID: %"PRIu32"\n", info->family);
 		// Add eventset string to the perfmon module.
-		//for broadwellEP, probably all intel machines!
-		if (strcmp("broadwellEP", info->short_name) == 0) {
+		//Intel CPU's
+		if (info->isIntel == 1) {
 			printf("Setting up events %s for %s\n", intel_estr,
 					info->short_name);
 			gid = perfmon_addEventSet(intel_estr);
 		}
 		//for AMD!
-		else if (strcmp("amd", info->short_name) == 0) {
+		else if (info->isIntel == 0) {
 			printf("Setting up events %s for %s\n", amd_estr, info->short_name);
 			gid = perfmon_addEventSet(amd_estr);
 		} else {
@@ -186,9 +187,9 @@ double get_stall_rate_v2() {
 	j = 0;
 	char* ptr = NULL;
 	//Results depending on the architecture!
-	if (strcmp("broadwellEP", info->short_name) == 0) {
+	if (info->isIntel == 0) {
 		ptr = strtok(intel_estr, ",");
-	} else if (strcmp("amd", info->short_name) == 0) {
+	} else if (info->isIntel == 0) {
 		ptr = strtok(amd_estr, ",");
 	} else {
 		printf(
