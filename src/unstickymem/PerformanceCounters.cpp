@@ -117,7 +117,7 @@ double get_stall_rate_v2() {
 		//uses a simple flag to do this, may use the more accurate cpu names or families
 		printf("Short name of the CPU: %s\n", info->short_name);
 		printf("Intel flag: %d\n", info->isIntel);
-		printf("CPU family ID: %"PRIu32"\n", info->family);
+		printf("CPU family ID: %" PRIu32 "\n", info->family);
 		// Add eventset string to the perfmon module.
 		//Intel CPU's
 		if (info->isIntel == 1) {
