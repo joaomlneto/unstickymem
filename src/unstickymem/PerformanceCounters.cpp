@@ -187,7 +187,7 @@ double get_stall_rate_v2() {
 	j = 0;
 	char* ptr = NULL;
 	//Results depending on the architecture!
-	if (info->isIntel == 0) {
+	if (info->isIntel == 1) {
 		ptr = strtok(intel_estr, ",");
 	} else if (info->isIntel == 0) {
 		ptr = strtok(amd_estr, ",");
