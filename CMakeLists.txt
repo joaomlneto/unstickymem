@@ -16,6 +16,11 @@ find_package(Threads REQUIRED)
 # require boost program options
 find_package(Boost COMPONENTS program_options REQUIRED)
 
+
+#######################
+# unstickymem library #
+################################################################################
+
 # get list of source files
 file(GLOB_RECURSE unstickymem_src relative ${CMAKE_CURRENT_SOURCE_DIR} "src/*.cpp" "src/*c")
 add_library(unstickymem SHARED ${unstickymem_src})
@@ -35,6 +40,9 @@ target_include_directories(unstickymem
 
 target_link_libraries(unstickymem
 	Threads::Threads
+  ${CMAKE_DL_LIBS}
+  rt
+  -rdynamic
   ${Boost_LIBRARIES}
 	numa
 	likwid
@@ -62,16 +70,13 @@ if(NOT TARGET uninstall)
 		COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 endif()
 
-
-
-
-
+################################################################################
 
 # gureya's benchmark
 add_executable(autobench test/autobench.c)
 target_link_libraries(autobench unstickymem Threads::Threads -lnuma)
 
-# a hello world example to show that its linking to the shared library
+# hello world example
 add_executable(test_hello_world test/test_hello_world.c)
 target_link_libraries(test_hello_world unstickymem)
 add_test(test_hello_world test_hello_world)
