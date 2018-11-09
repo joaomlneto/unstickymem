@@ -1,0 +1,33 @@
+/**
+ * Copyright 2018 João Neto
+ * Wrapper for native libc/pthread functions
+ **/
+#include <pthread.h>
+#include <dlfcn.h>
+#include <cassert>
+
+#include "unstickymem/Logger.hpp"
+#include "unstickymem/wrap.hpp"
+
+#define SET_WRAPPED(x, handle) \
+  do {\
+    WRAP(x) = (__typeof__(WRAP(x))) dlsym(handle, #x);\
+    assert(#x);\
+    if (WRAP(x) == NULL) {\
+      LFATALF("Could not wrap function %s", #x);\
+    }\
+  } while (0)
+
+// linux
+void* (*WRAP(malloc))(size_t);
+void* (*WRAP(mmap))(void*, size_t, int, int, int, off_t);
+void* (*WRAP(sbrk))(intptr_t);
+
+void init_real_functions() {
+  LDEBUG("Initializing references to replaced library functions");
+
+  // linux
+  SET_WRAPPED(malloc, RTLD_NEXT);
+  SET_WRAPPED(mmap, RTLD_NEXT);
+  SET_WRAPPED(sbrk, RTLD_NEXT);
+}

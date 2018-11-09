@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <dlfcn.h>
 
 #include <numa.h>
 #include <numaif.h>
@@ -15,6 +16,7 @@
 #include "unstickymem/PagePlacement.hpp"
 #include "unstickymem/MemoryMap.hpp"
 #include "unstickymem/Logger.hpp"
+#include "unstickymem/wrap.hpp"
 
 // wait before starting
 #define WAIT_START 2 // seconds
@@ -125,17 +127,6 @@ void *hw_monitor_thread(void *arg) {
 	return NULL;
 }
 
-/*
- void dump_info(void) {
- LINFOF("PAGE_SIZE %d", PAGE_SIZE);
- LINFOF("PAGE_MASK 0x%x", PAGE_MASK);
- LINFOF("sbrk(0): 0x%lx", sbrk(0));
- LINFOF("Program break: %p", sbrk(0));
- MemoryMap segments;
- segments.print();
- }
- */
-
 void read_config(void) {
 	OPT_DISABLED = std::getenv("UNSTICKYMEM_DISABLED") != nullptr;
 	OPT_SCAN = std::getenv("UNSTICKYMEM_SCAN") != nullptr;
@@ -165,6 +156,8 @@ void print_config(void) {
 __attribute__((constructor)) void libunstickymem_initialize(void) {
 	LINFO("Initializing");
 
+	init_real_functions();
+
 // parse and display the configuration
 	read_config();
 	print_config();
@@ -187,7 +180,7 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
 // library destructor
 __attribute((destructor)) void libunstickymem_finalize(void) {
 //stop all the counters
-	stop_all_counters();
+	//stop_all_counters();
 //LINFO("Finalizing");
 	LINFO("Finalized");
 }
@@ -203,6 +196,28 @@ extern "C" {
 void unstickymem_nop(void) {
 	LDEBUG("unstickymem NO-OP!");
 }
+
+void *mmap(void *addr, size_t length, int prot,
+           int flags, int fd, off_t offset) {
+	void *result = WRAP(mmap)(addr, length, prot, flags, fd, offset);
+	LTRACEF("mmap(%p, %zu, %d, %d, %d, %d) => %p",
+	        addr, length, prot, flags, fd, offset, result);
+	return result;
+}
+
+void *sbrk(intptr_t increment) {
+	void *result = WRAP(sbrk)(increment);
+	LTRACEF("sbrk(%zu) => %p", increment, result);
+	return result;
+}
+
+long mbind(void *addr, unsigned long len, int mode,
+           const unsigned long *nodemask, unsigned long maxnode,
+		   unsigned flags) {
+	LWARN("NO MBIND FOR YOU >:(");
+	return 0;
+}
+
 
 #ifdef __cplusplus
 }  // extern "C"
