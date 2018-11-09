@@ -10,6 +10,7 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libboost-all-dev
             - libnuma-dev
             - g++-8
     - name: "gcc 7"
@@ -19,6 +20,7 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libboost-all-dev
             - libnuma-dev
             - g++-7
     - name: "gcc 6"
@@ -28,6 +30,7 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - libboost-all-dev
             - libnuma-dev
             - g++-6
     - name: "clang 6"
@@ -38,6 +41,7 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-6.0
           packages:
+            - libboost-all-dev
             - libnuma-dev
             - libstdc++-8-dev
             - clang-6.0
