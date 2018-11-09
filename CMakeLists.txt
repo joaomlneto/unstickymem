@@ -13,6 +13,9 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+# require boost program options
+find_package(Boost COMPONENTS program_options REQUIRED)
+
 # get list of source files
 file(GLOB_RECURSE unstickymem_src relative ${CMAKE_CURRENT_SOURCE_DIR} "src/*.cpp" "src/*c")
 add_library(unstickymem SHARED ${unstickymem_src})
@@ -20,13 +23,19 @@ add_library(unstickymem SHARED ${unstickymem_src})
 set_property(TARGET unstickymem PROPERTY POSITION_INDEPENDENT_CODE on)
 target_compile_options(unstickymem PRIVATE -g -Wall -pedantic -Wshadow -Wfatal-errors)
 
+target_compile_features(unstickymem
+  PRIVATE cxx_std_17
+)
+
 target_include_directories(unstickymem
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 	PUBLIC $<INSTALL_INTERFACE:include>
+  PRIVATE ${Boost_INCLUDE_DIRS}
 	PRIVATE src)
 
 target_link_libraries(unstickymem
 	Threads::Threads
+  ${Boost_LIBRARIES}
   -lnuma
 )
 
@@ -65,5 +74,3 @@ target_link_libraries(autobench unstickymem Threads::Threads -lnuma)
 add_executable(test_hello_world test/test_hello_world.c)
 target_link_libraries(test_hello_world unstickymem)
 add_test(test_hello_world test_hello_world)
-
-
