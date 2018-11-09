@@ -94,7 +94,7 @@ void MemorySegment::print() {
            (isWriteable() ?  'W' : '-'),
            (isReadable() ?   'R' : '-'),
            _name.c_str());
-  L->printHorizontalRule(info, (isWriteable() ? 2 : 1));
+ // L->printHorizontalRule(info, (isWriteable() ? 2 : 1));
   /*
   if (isHeap())
     L->printHorizontalRule(">> FOUND THE HEAP!", 3);

@@ -154,7 +154,7 @@ class Logger {
   }
 
  private:
-  LogLevel _loglevel = LogLevel::TRACE;
+  LogLevel _loglevel = LogLevel::DEBUG;
 
   inline bool should_log(LogLevel lvl) {
     return lvl >= _loglevel;
