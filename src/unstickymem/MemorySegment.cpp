@@ -1,3 +1,5 @@
+#include <sys/sysmacros.h>
+
 #include "unstickymem/MemorySegment.hpp"
 #include "unstickymem/Logger.hpp"
 
@@ -77,7 +79,7 @@ bool MemorySegment::isShared() {
 }
 
 bool MemorySegment::isPrivate() {
-  return (_permissions && 16U) != 0;
+  return (_permissions & 16U) != 0;
 }
 
 void MemorySegment::print() {
@@ -94,7 +96,7 @@ void MemorySegment::print() {
            (isWriteable() ?  'W' : '-'),
            (isReadable() ?   'R' : '-'),
            _name.c_str());
- // L->printHorizontalRule(info, (isWriteable() ? 2 : 1));
+  L->printHorizontalRule(info, (isWriteable() ? 2 : 1));
   /*
   if (isHeap())
     L->printHorizontalRule(">> FOUND THE HEAP!", 3);
@@ -121,4 +123,4 @@ bool MemorySegment::isAnonymous() {
   return name().length() == 0;
 }
 
-}  // namespace unstickymem
+}
