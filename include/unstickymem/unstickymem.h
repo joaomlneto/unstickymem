@@ -13,4 +13,7 @@ void unstickymem_nop(void);
 }  // extern "C"
 #endif
 
+// the number of worker nodes
+extern int OPT_NUM_WORKERS_VALUE;
+
 #endif  // UNSTICKYMEM_H_
