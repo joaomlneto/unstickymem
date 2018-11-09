@@ -138,11 +138,12 @@ void place_pages(void *addr, unsigned long len, double r) {
 		return;
 
 	// bind the remainder to the local node
+	unsigned long zero_mask = 0;
 	LTRACEF(
 			"mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
 			local_addr, local_len);
 	DIEIF(
-			mbind(local_addr, local_len, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+			mbind(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
 			"mbind local failed");
 }
 
@@ -154,7 +155,7 @@ void place_pages(MemorySegment &segment, double ratio) {
 
 void place_all_pages(MemoryMap &segments, double ratio) {
 	for (auto &segment : segments) {
-		if (segment.isBindable() && segment.isWriteable()
+		if (segment.isBindable() && segment.isAnonymous() && segment.isWriteable()
 				&& segment.length() > 1ULL << 20) {
 			place_pages(segment, ratio);
 		}

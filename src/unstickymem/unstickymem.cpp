@@ -24,12 +24,14 @@
 #define NUM_POLL_OUTLIERS 5
 // how long should we wait between
 #define POLL_SLEEP 200000 // 0.2s
+int OPT_NUM_WORKERS_VALUE = 1;
 
 namespace unstickymem {
 
 static bool OPT_DISABLED = false;
 static bool OPT_SCAN = false;
 static bool OPT_FIXED_RATIO = false;
+static bool OPT_NUM_WORKERS = false;
 static double OPT_FIXED_RATIO_VALUE = 0.0;
 
 static pthread_t hw_poller_thread;
@@ -65,8 +67,15 @@ void *hw_monitor_thread(void *arg) {
 			LINFOF("Fixed Ratio selected. Placing %lf in local node.",
 					OPT_FIXED_RATIO_VALUE);
 			place_all_pages(OPT_FIXED_RATIO_VALUE);
+			unstickymem_log(OPT_FIXED_RATIO_VALUE);
+			stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
+			NUM_POLL_OUTLIERS);
 			fprintf(stderr, "measured stall rate: %lf\n",
-			        get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS));
+					get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
+					NUM_POLL_OUTLIERS));
+
+			//print stall_rate to a file for debugging!
+			unstickymem_log(stall_rate, OPT_FIXED_RATIO_VALUE);
 			pthread_exit(0);
 		}
 		exit(-1);
@@ -78,8 +87,12 @@ void *hw_monitor_thread(void *arg) {
 		local_ratio = ((double) local_percentage) / 100;
 		LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
 		place_all_pages(segments, local_ratio);
+		unstickymem_log(local_ratio);
 		stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
 		NUM_POLL_OUTLIERS);
+		//print stall_rate to a file for debugging!
+		unstickymem_log(stall_rate, local_ratio);
+
 		LINFOF(
 				"Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
 				local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
@@ -127,9 +140,13 @@ void read_config(void) {
 	OPT_DISABLED = std::getenv("UNSTICKYMEM_DISABLED") != nullptr;
 	OPT_SCAN = std::getenv("UNSTICKYMEM_SCAN") != nullptr;
 	OPT_FIXED_RATIO = std::getenv("UNSTICKYMEM_FIXED_RATIO") != nullptr;
+	OPT_NUM_WORKERS = std::getenv("UNSTICKYMEM_WORKERS") != nullptr;
 	if (OPT_FIXED_RATIO) {
 		OPT_FIXED_RATIO_VALUE = std::stod(
 				std::getenv("UNSTICKYMEM_FIXED_RATIO"));
+	}
+	if (OPT_NUM_WORKERS) {
+		OPT_NUM_WORKERS_VALUE = std::stoi(std::getenv("UNSTICKYMEM_WORKERS"));
 	}
 }
 
@@ -139,26 +156,29 @@ void print_config(void) {
 	LINFOF("fixed ratio: %s",
 			OPT_FIXED_RATIO ?
 					std::to_string(OPT_FIXED_RATIO_VALUE).c_str() : "no");
+	LINFOF("num_workers: %s",
+			OPT_NUM_WORKERS ?
+					std::to_string(OPT_NUM_WORKERS_VALUE).c_str() : "no");
 }
 
 // library initialization
 __attribute__((constructor)) void libunstickymem_initialize(void) {
 	LINFO("Initializing");
 
-	// parse and display the configuration
+// parse and display the configuration
 	read_config();
 	print_config();
 
-	// don't do anything if disabled
+// don't do anything if disabled
 	if (OPT_DISABLED)
 		return;
 
-	// interleave memory by default
+// interleave memory by default
 	LINFO("Setting default memory policy to interleaved");
 	set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
 			numa_get_mems_allowed()->size);
 
-	// spawn the dynamic placement thread
+// spawn the dynamic placement thread
 	pthread_create(&hw_poller_thread, NULL, hw_monitor_thread, NULL);
 
 	LINFO("Initialized");
@@ -166,9 +186,9 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
 
 // library destructor
 __attribute((destructor)) void libunstickymem_finalize(void) {
-	//stop all the counters
+//stop all the counters
 	stop_all_counters();
-	//LINFO("Finalizing");
+//LINFO("Finalizing");
 	LINFO("Finalized");
 }
 

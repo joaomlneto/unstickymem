@@ -1,7 +1,3 @@
-#include <unistd.h>
-#include <linux/perf_event.h>
-#include <sys/ioctl.h>
-#include <asm/unistd.h>
 #include <cstdint>
 #include <cstddef>
 #include <iostream>
@@ -9,28 +5,47 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include "unstickymem/unstickymem.h"
 #include <unstickymem/PerformanceCounters.hpp>
 #include <unstickymem/Logger.hpp>
 
 #include <likwid.h>
+
+#include <numa.h>
+#include <numaif.h>
 
 //format specifiers for the intN_t types
 #include <inttypes.h>
 
 namespace unstickymem {
 
-//perf_event_open variables
-struct perf_event_attr pe;
-uint64_t count;
-int fd;
 static bool initiatialized = false;
 
-static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
-		int cpu, int group_fd, unsigned long flags) {
-	int ret;
+//output stall rate to a log file
+void unstickymem_log(double sr, double ratio) {
+	FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt", "a");
+	if (f == NULL) {
+		printf("Error opening file!\n");
+		exit(-1);
+	}
 
-	ret = syscall(__NR_perf_event_open, hw_event, pid, cpu, group_fd, flags);
-	return ret;
+	fprintf(f, "%1.10lf %1.2lf\n", sr, ratio);
+
+	fclose(f);
+	return;
+}
+
+void unstickymem_log(double ratio) {
+	FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt", "a");
+	if (f == NULL) {
+		printf("Error opening file!\n");
+		exit(-1);
+	}
+
+	fprintf(f, "Stall rates for %1.2lf\n", ratio);
+
+	fclose(f);
+	return;
 }
 
 /*
@@ -54,19 +69,25 @@ int err;
 int* cpus;
 int gid;
 CpuInfo_t info;
+static int nnodes;
+static int ncpus_per_node;
+static int ncpus;
+static int active_cpus;
 
 double get_stall_rate_v2() {
 	int i, j;
 	double result = 0.0;
 
-	static double prev_cycles = 0;
+	//static double prev_cycles = 0;
 	static double prev_stalls = 0;
 	static uint64_t prev_clockcounts = 0;
 
 	//list of all the events for the different architectures supported
-	char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
-	char intel_estr[] =
-			"CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
+	//char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
+	char amd_estr[] = "DISPATCH_STALLS:PMC0"; //AMD
+	//char intel_estr[] =
+	//		"CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
+	char intel_estr[] = "RESOURCE_STALLS_ANY:PMC0"; //Intel Broadwell EP
 
 	if (!initiatialized) {
 		//perfmon_setVerbosity(3);
@@ -75,7 +96,7 @@ double get_stall_rate_v2() {
 		if (err < 0) {
 			printf("Failed to initialize LIKWID's topology module\n");
 			//return 1;
-			exit(1);
+			exit(-1);
 		}
 		// CpuInfo_t contains global information like name, CPU family, ...
 		//CpuInfo_t info = get_cpuInfo();
@@ -88,33 +109,108 @@ double get_stall_rate_v2() {
 		printf("Likwid Measuremennts on a %s with %d CPUs\n", info->name,
 				topo->numHWThreads);
 
-		cpus = (int*) malloc(topo->numHWThreads * sizeof(int));
-		if (!cpus)
-			exit(1);		//return 1;
+		ncpus = topo->numHWThreads;
+		nnodes = numa_num_configured_nodes();
+		ncpus_per_node = ncpus / nnodes;
 
-		for (i = 0; i < topo->numHWThreads; i++) {
+		active_cpus = OPT_NUM_WORKERS_VALUE * ncpus_per_node;
+
+		printf(
+				"========================================================================================\n");
+		printf(
+				"| [NODES] - %d: [CPUS] - %d: [CPUS_PER_NODE] - %d: [NUM_WORKERS] - %d: [ACTIVE_CPUS] - %d |\n",
+				nnodes, ncpus, ncpus_per_node, OPT_NUM_WORKERS_VALUE,
+				active_cpus);
+		printf(
+				"========================================================================================\n");
+
+		//cpus = (int*) malloc(topo->numHWThreads * sizeof(int));
+		//for now only monitor one CPU
+		cpus = (int*) malloc(active_cpus * sizeof(int));
+		if (!cpus)
+			exit(-1);		//return 1;
+
+		/*for (i = 0; i < topo->numHWThreads; i++) {
+		 cpus[i] = topo->threadPool[i].apicId;
+		 }*/
+
+		/*
+		 * Get the cpus of the worker nodes
+		 * num_workers=1 use node 0
+		 * num_workers==2 use node 0, 1
+		 * num_workers=3 use node 1,2,3
+		 * num_workers=4 use node 0,1,2,3,4
+		 *
+		 */
+		j = 0;
+		for (i = 0; i < ncpus; i++) {
+
+			switch (OPT_NUM_WORKERS_VALUE) {
+			case 1:
+				if (numa_node_of_cpu(i) == 0) {
+					cpus[j] = i;
+					j++;
+					//printf("NUM_WORKER: %d cpu: %d\n", NUM_WORKERS, i);
+				}
+				break;
+			case 2:
+				if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1) {
+					cpus[j] = i;
+					j++;
+				}
+				break;
+			case 3:
+				if (numa_node_of_cpu(i) == 1 || numa_node_of_cpu(i) == 2
+						|| numa_node_of_cpu(i) == 3) {
+					cpus[j] = i;
+					j++;
+				}
+				break;
+			case 4:
+				if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1
+						|| numa_node_of_cpu(i) == 2
+						|| numa_node_of_cpu(i) == 3) {
+					cpus[j] = i;
+					j++;
+				}
+				break;
+			default:
+				printf(
+						"Sorry, %d Worker nodes is not supported at the moment!\n",
+						OPT_NUM_WORKERS_VALUE);
+				exit(-1);
+			}
+		}
+
+		printf("Worker/Monitored CPUs: ");
+		for (i = 0; i < active_cpus; i++) {
+			printf("%d ", cpus[i]);
 			cpus[i] = topo->threadPool[i].apicId;
 		}
+		printf("\n");
 
 		// Must be called before perfmon_init() but only if you want to use another
 		// access mode as the pre-configured one. For direct access (0) you have to
 		// be root.
 		//accessClient_setaccessmode(0);
-
 		// Initialize the perfmon module.
-		err = perfmon_init(topo->numHWThreads, cpus);
+		//err = perfmon_init(topo->numHWThreads, cpus);
+		err = perfmon_init(active_cpus, cpus);
 		if (err < 0) {
 			printf(
 					"Failed to initialize LIKWID's performance monitoring module\n");
 			topology_finalize();
 			//return 1;
-			exit(1);
+			exit(-1);
 		}
 
-		//pick the right event based on the architecture,
-		//currently tested on AMD {amd64_fam15h_interlagos && amd64_fam10h_istanbul}
-		//and INTEL {Intel Broadwell EP}
-		//uses a simple flag to do this, may use the more accurate cpu names or families
+		/*
+		 * pick the right event based on the architecture,
+		 * currently tested on AMD {amd64_fam15h_interlagos && amd64_fam10h_istanbul}
+		 * and INTEL {Intel Broadwell EP}
+		 * uses a simple flag to do this, may use the more accurate cpu names or families
+		 *
+		 */
 		printf("Short name of the CPU: %s\n", info->short_name);
 		printf("Intel flag: %d\n", info->isIntel);
 		printf("CPU family ID: %" PRIu32 "\n", info->family);
@@ -131,7 +227,7 @@ double get_stall_rate_v2() {
 			gid = perfmon_addEventSet(amd_estr);
 		} else {
 			printf("Unsupported Architecture at the moment\n");
-			exit(1);
+			exit(-1);
 		}
 
 		if (gid < 0) {
@@ -141,7 +237,7 @@ double get_stall_rate_v2() {
 			perfmon_finalize();
 			topology_finalize();
 			//return 1;
-			exit(1);
+			exit(-1);
 		}
 
 		// Setup the eventset identified by group ID (gid).
@@ -153,7 +249,7 @@ double get_stall_rate_v2() {
 			perfmon_finalize();
 			topology_finalize();
 			//return 1;
-			exit(1);
+			exit(-1);
 		}
 		// Start all counters in the previously set up event set.
 		err = perfmon_startCounters();
@@ -162,7 +258,7 @@ double get_stall_rate_v2() {
 					(-1 * err) - 1);
 			perfmon_finalize();
 			topology_finalize();
-			exit(1);
+			exit(-1);
 			//return 1;
 		}
 		initiatialized = true;
@@ -177,48 +273,51 @@ double get_stall_rate_v2() {
 		perfmon_finalize();
 		topology_finalize();
 		//return 1;
-		exit(1);
+		exit(-1);
 	}
 
 	// Read the result of every thread/CPU for all events in estr.
-	// For now just read/print for CPU 0
-	double cycles = 0;
+	// For now just read/print for the active cores only
+	//double cycles = 0;
 	double stalls = 0;
 	j = 0;
 	char* ptr = NULL;
 	//Results depending on the architecture!
 	if (info->isIntel == 1) {
-		ptr = strtok(intel_estr, ",");
+		//ptr = strtok(intel_estr, ",");
+		ptr = intel_estr;
 	} else if (info->isIntel == 0) {
-		ptr = strtok(amd_estr, ",");
+		//ptr = strtok(amd_estr, ",");
+		ptr = amd_estr;
 	} else {
 		printf(
 				"Error: Something went wrong, can't get the measurements at the moment!\n");
-		exit(1);
+		exit(-1);
 	}
 
-	while (ptr != NULL) {
-		for (i = 0; i < 1; i++) {
-			result = perfmon_getResult(gid, j, i);
-			if (j == 0) {
-				cycles = result;
-			} else {
-				stalls = result;
-			}
-			//printf("Measurement result for event set %s at CPU %d: %f\n", ptr,
-			//		cpus[i], result);
-		}
-		ptr = strtok(NULL, ",");
-		j++;
+	//while (ptr != NULL) {
+	for (i = 0; i < active_cpus; i++) {
+		result = perfmon_getResult(gid, j, i);
+		//if (j == 0) {
+		//	cycles += result;
+		//} else {
+		stalls += result;
+		//}
+		//printf("Measurement result for event set %s at CPU %d: %f\n", ptr,
+		//		cpus[i], result);
 	}
+	//	ptr = strtok(NULL, ",");
+	//	j++;
+	//}
 
-	//uint64_t clock = readtsc(); // read clock
-	double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);
-	//double stall_rate = ((double) (stalls - prev_stalls))
-	//		/ (clock - prev_clockcounts);
-	prev_cycles = cycles;
+	uint64_t clock = readtsc(); // read clock
+	//double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);
+	stalls = stalls / active_cpus;
+	double stall_rate = ((double) (stalls - prev_stalls))
+			/ (clock - prev_clockcounts);
+	//prev_cycles = cycles;
 	prev_stalls = stalls;
-	//prev_clockcounts = clock;
+	prev_clockcounts = clock;
 
 	err = perfmon_startCounters();
 	if (err < 0) {
@@ -226,7 +325,7 @@ double get_stall_rate_v2() {
 				(-1 * err) - 1);
 		perfmon_finalize();
 		topology_finalize();
-		exit(1);
+		exit(-1);
 		//return 1;
 	}
 
@@ -241,7 +340,7 @@ void stop_all_counters() {
 		perfmon_finalize();
 		topology_finalize();
 		//return 1;
-		exit(1);
+		exit(-1);
 	}
 	free(cpus);
 	// Uninitialize the perfmon module.
@@ -274,51 +373,6 @@ double get_stall_rate() {
 	return stall_rate;
 }
 
-//check performance counters and computes stalls per second since last call using perf_event_open
-//EventSelect 0D1h Dispatch Stalls - 0x0004000D1
-double get_stall_rate_v1() {
-
-	static uint64_t prev_clockcounts = 0;
-	static uint64_t prev_pmcounts = 0;
-	//initialize and start the counters
-	if (!initiatialized) {
-		memset(&pe, 0, sizeof(struct perf_event_attr));
-		pe.type = PERF_TYPE_RAW;
-		pe.size = sizeof(struct perf_event_attr);
-		pe.config = 0x0004000D1;
-		pe.disabled = 1;
-		pe.exclude_kernel = 1;
-		pe.exclude_hv = 1;
-
-		fd = perf_event_open(&pe, 0, 0, -1, 0);
-		if (fd == -1) {
-			fprintf(stderr, "Error opening leader %llx\n", pe.config);
-			exit (EXIT_FAILURE);
-		}
-
-		ioctl(fd, PERF_EVENT_IOC_RESET, 0);
-		ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
-
-		initiatialized = true;
-	}
-
-	uint64_t clock = readtsc();
-	ioctl(fd, PERF_EVENT_IOC_DISABLE, 0);
-	read(fd, &count, sizeof(uint64_t));
-
-	double stall_rate = (double) count;
-	//double stall_rate = ((double) (count - prev_pmcounts))
-	/// (clock - prev_clockcounts);
-
-	prev_clockcounts = clock;
-	prev_pmcounts = count;
-
-	ioctl(fd, PERF_EVENT_IOC_RESET, 0);
-	ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
-
-	return stall_rate;
-}
-
 // samples stall rate multiple times and filters outliers
 double get_average_stall_rate(size_t num_measurements,
 		useconds_t usec_between_measurements, size_t num_outliers_to_filter) {
@@ -326,15 +380,14 @@ double get_average_stall_rate(size_t num_measurements,
 
 // throw away a measurement, just because
 //get_stall_rate();
-//get_stall_rate_v1();
 	get_stall_rate_v2();
 	usleep(usec_between_measurements);
 
 // do N measurements, T usec apart
 	for (size_t i = 0; i < num_measurements; i++) {
 		//measurements[i] = get_stall_rate();
-		//measurements[i] = get_stall_rate_v1();
 		measurements[i] = get_stall_rate_v2();
+		unstickymem_log(measurements[i], i);
 		usleep(usec_between_measurements);
 	}
 
@@ -379,4 +432,4 @@ inline uint64_t readpmc(int32_t n) {
 #endif
 
 }
-		// namespace unstickymem
+ // namespace unstickymem
