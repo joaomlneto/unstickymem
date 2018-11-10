@@ -37,94 +37,7 @@ static bool OPT_FIXED_RATIO = false;
 static bool OPT_NUM_WORKERS = false;
 static double OPT_FIXED_RATIO_VALUE = 0.0;
 
-static pthread_t hw_poller_thread;
-
 static bool is_initialized = false;
-
-/**
- * Thread that monitors hardware counters in a given core
- */
-void *hw_monitor_thread(void *arg) {
-  double local_ratio = 1.0 / numa_num_configured_nodes(); // start with everything interleaved
-  double prev_stall_rate = std::numeric_limits<double>::infinity();
-  double best_stall_rate = std::numeric_limits<double>::infinity();
-  double stall_rate;
-
-  // pin thread to core zero
-  cpu_set_t mask;
-  CPU_ZERO(&mask);
-  CPU_SET(0, &mask);
-  DIEIF(sched_setaffinity(syscall(SYS_gettid), sizeof(mask), &mask) < 0,
-        "could not set affinity for hw monitor thread");
-
-  // lets wait a bit before starting the process
-  //get_stall_rate();
-  //get_stall_rate_v1();
-  get_stall_rate_v2();
-  sleep(WAIT_START);
-
-  // dump mapping information
-  MemoryMap segments;
-  segments.print();
-
-  if (OPT_FIXED_RATIO) {
-    while (1) {
-      LINFOF("Fixed Ratio selected. Placing %lf in local node.",
-             OPT_FIXED_RATIO_VALUE);
-      place_all_pages(OPT_FIXED_RATIO_VALUE);
-      unstickymem_log(OPT_FIXED_RATIO_VALUE);
-      stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
-                                          NUM_POLL_OUTLIERS);
-      fprintf(stderr, "measured stall rate: %lf\n",
-      get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS));
-
-      //print stall_rate to a file for debugging!
-      unstickymem_log(stall_rate, OPT_FIXED_RATIO_VALUE);
-      pthread_exit(0);
-    }
-    exit(-1);
-  }
-
-  // slowly achieve awesomeness
-  for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5 * 5;
-       local_percentage <= 100; local_percentage += 5) {
-    local_ratio = ((double) local_percentage) / 100;
-    LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
-    place_all_pages(segments, local_ratio);
-    unstickymem_log(local_ratio);
-    stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP, NUM_POLL_OUTLIERS);
-    //print stall_rate to a file for debugging!
-    unstickymem_log(stall_rate, local_ratio);
-
-    LINFOF("Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
-           local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
-    /*std::string s = std::to_string(stall_rate);
-    s.replace(s.find("."), std::string(".").length(), ",");
-    fprintf(stderr, "%s\n", s.c_str());*/
-    // compute the minimum rate
-    best_stall_rate = std::min(best_stall_rate, stall_rate);
-    // check if we are geting worse
-    if (!OPT_SCAN && stall_rate > best_stall_rate * 1.001) {
-      // just make sure that its not something transient...!
-      LINFO("Hmm... Is this the best we can do?");
-      if (get_average_stall_rate(NUM_POLLS * 2, POLL_SLEEP, NUM_POLL_OUTLIERS * 2)) {
-        LINFO("I guess so!");
-        break;
-      }
-    }
-    prev_stall_rate = stall_rate;
-  }
-
-  LINFO("My work here is done! Enjoy the speedup");
-  LINFOF("Ratio: %1.2lf", local_ratio);
-  LINFOF("Stall Rate: %1.10lf", stall_rate);
-  LINFOF("Best Measured Stall Rate: %1.10lf", best_stall_rate);
-
-  if (OPT_SCAN)
-    exit(0);
-
-  return NULL;
-}
 
 void read_config(void) {
   OPT_DISABLED = std::getenv("UNSTICKYMEM_DISABLED") != nullptr;
@@ -160,16 +73,7 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
   print_config();
 
   // start the runtime
-  Runtime r;
-
-  // interleave memory by default
-  LDEBUG("Setting default memory policy to interleaved");
-  set_mempolicy(MPOL_INTERLEAVE,
-                numa_get_mems_allowed()->maskp,
-                numa_get_mems_allowed()->size);
-
-  // spawn the dynamic placement thread
-  pthread_create(&hw_poller_thread, NULL, hw_monitor_thread, NULL);
+  unstickymem::Runtime r;
 
   is_initialized = true;
   LDEBUG("Initialized");
