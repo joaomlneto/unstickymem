@@ -19,15 +19,20 @@
   } while (0)
 
 // linux
+int   (*WRAP(posix_memalign))(void**, size_t, size_t);
 void* (*WRAP(malloc))(size_t);
-void* (*WRAP(mmap))(void*, size_t, int, int, int, off_t);
-void* (*WRAP(sbrk))(intptr_t);
+void  (*WRAP(free))  (void*);
+void* (*WRAP(mmap))  (void*, size_t, int, int, int, off_t);
+void* (*WRAP(sbrk))  (intptr_t);
 
 void init_real_functions() {
+
   LDEBUG("Initializing references to replaced library functions");
 
   // linux
-  SET_WRAPPED(malloc, RTLD_NEXT);
-  SET_WRAPPED(mmap, RTLD_NEXT);
-  SET_WRAPPED(sbrk, RTLD_NEXT);
+  SET_WRAPPED(posix_memalign, RTLD_NEXT);
+  SET_WRAPPED(malloc,         RTLD_NEXT);
+  SET_WRAPPED(free,           RTLD_NEXT);
+  SET_WRAPPED(mmap,           RTLD_NEXT);
+  SET_WRAPPED(sbrk,           RTLD_NEXT);
 }
