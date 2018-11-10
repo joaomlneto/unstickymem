@@ -1,6 +1,6 @@
 
 #include <unistd.h>
-#include <sys/types.h>
+#include <sys/sysmacros.h>
 #include <sys/syscall.h>
 
 #include <thread>
