@@ -99,8 +99,16 @@ void ScanMode::scannerThread() {
 void ScanMode::start() {
   printParameters();
   LFATAL("ScanMode: starting");
+
+  // set default memory policy to interleaved
+  LDEBUG("Setting default memory policy to interleaved");
+  set_mempolicy(MPOL_INTERLEAVE,
+                numa_get_mems_allowed()->maskp,
+                numa_get_mems_allowed()->size);
+
   // start scanner thread
   std::thread scanThread(&ScanMode::scannerThread, this);
+
   // dont wait for it to finish
   scanThread.detach();
 }
