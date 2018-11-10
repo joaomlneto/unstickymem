@@ -27,35 +27,41 @@ static Mode::Registrar<ScanMode>
 po::options_description ScanMode::getOptions() {
   po::options_description mode_options("Scan mode parameters");
   mode_options.add_options()
-  //   (
-  //     "UNSTICKYMEM_WAIT_START",
-  //     po::value<unsigned int>(&_wait_start)->default_value(2),
-  //     "Time (in seconds) to wait before starting scan"
-  //   )
-  //   (
-  //     "UNSTICKYMEM_NUM_POLLS",
-  //     po::value<unsigned int>(&_num_polls)->default_value(20),
-  //     "How many measurements to make for each placement ratio"
-  //   )
+    (
+      "UNSTICKYMEM_WAIT_START",
+      po::value<unsigned int>(&_wait_start)->default_value(2),
+      "Time (in seconds) to wait before starting scan"
+    )
+    (
+      "UNSTICKYMEM_NUM_POLLS",
+      po::value<unsigned int>(&_num_polls)->default_value(20),
+      "How many measurements to make for each placement ratio"
+    )
     (
       "UNSTICKYMEM_NUM_POLL_OUTLIERS",
       po::value<unsigned int>(&_num_poll_outliers)->default_value(5),
       "How many of the top-N and bottom-N measurements to discard"
     )
-  //   (
-  //     "UNSTICKYMEM_POLL_SLEEP",
-  //     po::value<useconds_t>(&_poll_sleep)->default_value(200000),
-  //     "Time (in microseconds) between measurements"
-  //   )
+    (
+      "UNSTICKYMEM_POLL_SLEEP",
+      po::value<useconds_t>(&_poll_sleep)->default_value(200000),
+      "Time (in microseconds) between measurements"
+    )
+    (
+      "UNSTICKYMEM_EXIT_WHEN_FINISHED",
+      po::value<bool>(&_exit_when_finished)->default_value(false),
+      "Time (in microseconds) between measurements"
+    )
   ;
   return mode_options;
 }
 
 void ScanMode::printParameters() {
-  LINFOF("UNSTICKYMEM_WAIT_START:        %lu", _wait_start);
-  LINFOF("UNSTICKYMEM_NUM_POLLS:         %lu", _num_polls);
-  LINFOF("UNSTICKYMEM_NUM_POLL_OUTLIERS: %lu", _num_poll_outliers);
-  LINFOF("UNSTICKYMEM_POLL_SLEEP:        %lu", _poll_sleep);
+  LINFOF("UNSTICKYMEM_WAIT_START:         %lu", _wait_start);
+  LINFOF("UNSTICKYMEM_NUM_POLLS:          %lu", _num_polls);
+  LINFOF("UNSTICKYMEM_NUM_POLL_OUTLIERS:  %lu", _num_poll_outliers);
+  LINFOF("UNSTICKYMEM_POLL_SLEEP:         %lu", _poll_sleep);
+  LINFOF("UNSTICKYMEM_EXIT_WHEN_FINISHED: %s", _exit_when_finished ? "Y" : "N");
 }
 
 void ScanMode::scannerThread() {
@@ -93,6 +99,10 @@ void ScanMode::scannerThread() {
     // compute the minimum rate
     best_stall_rate = std::min(best_stall_rate, stall_rate);
     prev_stall_rate = stall_rate;
+  }
+
+  if (_exit_when_finished) {
+    exit(0);
   }
 }
 
