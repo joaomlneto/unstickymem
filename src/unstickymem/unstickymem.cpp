@@ -230,8 +230,10 @@ long mbind(void *addr, unsigned long len, int mode,
                       unsigned long, unsigned)) dlsym(RTLD_NEXT, "mbind"))
         (addr, len, mode, nodemask, maxnode, flags);
   }
-  void *result = WRAP(mbind)(addr, len, mode, nodemask, maxnode, flags);
-  return 0;
+  long result = WRAP(mbind)(addr, len, mode, nodemask, maxnode, flags);
+  LTRACEF("mbind(%p, %lu, %d, %p, %lu, %u) => %ld",
+          addr, len, mode, nodemask, maxnode, flags, result);
+  return result;
 }
 
 #ifdef __cplusplus

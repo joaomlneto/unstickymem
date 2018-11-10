@@ -24,6 +24,8 @@ void* (*WRAP(malloc))(size_t);
 void  (*WRAP(free))  (void*);
 void* (*WRAP(mmap))  (void*, size_t, int, int, int, off_t);
 void* (*WRAP(sbrk))  (intptr_t);
+long  (*WRAP(mbind)) (void*, unsigned long, int, const unsigned long*,
+                      unsigned long, unsigned);
 
 void init_real_functions() {
 
@@ -35,4 +37,5 @@ void init_real_functions() {
   SET_WRAPPED(free,           RTLD_NEXT);
   SET_WRAPPED(mmap,           RTLD_NEXT);
   SET_WRAPPED(sbrk,           RTLD_NEXT);
+  SET_WRAPPED(mbind,          RTLD_NEXT);
 }
