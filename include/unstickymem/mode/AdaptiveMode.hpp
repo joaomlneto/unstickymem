@@ -6,6 +6,11 @@
 namespace unstickymem {
 
 class AdaptiveMode : public Mode {
+ private:
+  unsigned int _wait_start;
+  unsigned int _num_polls;
+  unsigned int _num_poll_outliers;
+  useconds_t   _poll_sleep;
  public:
   static std::string name() {
     return "adaptive";
@@ -19,14 +24,9 @@ class AdaptiveMode : public Mode {
    return std::make_unique<AdaptiveMode>();
   }
 
-  po::options_description getOptions() {
-    po::options_description options("Adaptive Mode Options");
-    options.add_options()
-      ("dummy", po::value<std::string>(), "placeholder! FIXME!")
-    ;
-    return options;
-  }
-
+  po::options_description getOptions();
+  void printParameters();
+  void adaptiveThread();
   void start();
 };
 
