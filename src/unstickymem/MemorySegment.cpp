@@ -9,7 +9,6 @@ MemorySegment::MemorySegment(char *line) {
   int name_start = 0, name_end = 0;
   unsigned long addr_start, addr_end;
   char perms_str[8];
-  //printf("line: %s", line);
 
   // parse string
   DIEIF(sscanf(line, "%lx-%lx %7s %lx %u:%u %lu %n%*[^\n]%n",
@@ -123,4 +122,4 @@ bool MemorySegment::isAnonymous() {
   return name().length() == 0;
 }
 
-}
+}  // namespace unstickymem
