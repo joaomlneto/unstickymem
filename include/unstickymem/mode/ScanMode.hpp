@@ -1,6 +1,8 @@
 #ifndef UNSTICKYMEM_SCANMODE_HPP_
 #define UNSTICKYMEM_SCANMODE_HPP_
 
+#include <string>
+
 #include "unstickymem/mode/Mode.hpp"
 
 namespace unstickymem {

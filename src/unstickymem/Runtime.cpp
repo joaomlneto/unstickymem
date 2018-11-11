@@ -59,17 +59,21 @@ void Runtime::loadConfiguration() {
   po::options_description all_options("unstickymem options");
   all_options.add(lib_options).add(mode_options);
 
-  // parse all options
+  // parse all options (and ignore undeclared)
   po::variables_map env;
-  po::store(po::parse_environment(all_options, [all_options](const std::string& var) {
-    return std::any_of(
-      all_options.options().cbegin(),
-      all_options.options().cend(),
-      [var](auto opt) { return var == opt->long_name(); }) ? var : "";
-  }), env);
+  po::store(
+    po::parse_environment(
+      all_options,
+      [all_options](const std::string& var) {
+        return std::any_of(
+          all_options.options().cbegin(),
+          all_options.options().cend(),
+          [var](auto opt) { return var == opt->long_name(); }) ? var : "";
+      }),
+    env);
   po::notify(env);
 
-  // check if user is in trouble!
+  // check if user wants help
   if (option_help) {
      std::cout << std::endl << all_options << std::endl;
      exit(0);
@@ -77,7 +81,6 @@ void Runtime::loadConfiguration() {
 
   // set log level
   L->loglevel(option_loglevel);
-
 }
 
 void Runtime::printConfiguration() {

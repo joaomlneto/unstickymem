@@ -3,13 +3,13 @@
 #include <sys/sysmacros.h>
 #include <sys/syscall.h>
 
+#include <numa.h>
+#include <numaif.h>
+
 #include <thread>
 #include <iostream>
 
 #include <boost/program_options.hpp>
-
-#include <numa.h>
-#include <numaif.h>
 
 #include "unstickymem/PerformanceCounters.hpp"
 #include "unstickymem/PagePlacement.hpp"
@@ -49,7 +49,7 @@ po::options_description ScanMode::getOptions() {
     )
     (
       "UNSTICKYMEM_EXIT_WHEN_FINISHED",
-      po::value<bool>(&_exit_when_finished)->default_value(false),
+      po::value<bool>(&_exit_when_finished)->default_value(true),
       "Time (in microseconds) between measurements"
     )
   ;
@@ -61,7 +61,8 @@ void ScanMode::printParameters() {
   LINFOF("UNSTICKYMEM_NUM_POLLS:          %lu", _num_polls);
   LINFOF("UNSTICKYMEM_NUM_POLL_OUTLIERS:  %lu", _num_poll_outliers);
   LINFOF("UNSTICKYMEM_POLL_SLEEP:         %lu", _poll_sleep);
-  LINFOF("UNSTICKYMEM_EXIT_WHEN_FINISHED: %s", _exit_when_finished ? "Y" : "N");
+  LINFOF("UNSTICKYMEM_EXIT_WHEN_FINISHED: %s",
+         _exit_when_finished ? "Yes" : "No");
 }
 
 void ScanMode::scannerThread() {

@@ -21,7 +21,7 @@ class AdaptiveMode : public Mode {
   }
 
   static std::unique_ptr<Mode> createInstance() {
-   return std::make_unique<AdaptiveMode>();
+    return std::make_unique<AdaptiveMode>();
   }
 
   po::options_description getOptions();

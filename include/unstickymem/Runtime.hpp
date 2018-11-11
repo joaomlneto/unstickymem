@@ -1,6 +1,8 @@
 #ifndef UNSTICKYMEM_RUNTIME_HPP_
 #define UNSTICKYMEM_RUNTIME_HPP_
 
+#include <string>
+
 #include <boost/program_options.hpp>
 
 #include "unstickymem/mode/Mode.hpp"

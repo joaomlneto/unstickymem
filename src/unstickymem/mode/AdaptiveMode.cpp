@@ -2,12 +2,12 @@
 #include <sys/sysmacros.h>
 #include <sys/syscall.h>
 
+#include <numa.h>
+#include <numaif.h>
+
 #include <thread>
 
 #include <boost/program_options.hpp>
-
-#include <numa.h>
-#include <numaif.h>
 
 #include "unstickymem/PerformanceCounters.hpp"
 #include "unstickymem/PagePlacement.hpp"
