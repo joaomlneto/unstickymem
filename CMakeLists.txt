@@ -80,3 +80,8 @@ target_link_libraries(autobench unstickymem Threads::Threads -lnuma)
 add_executable(test_hello_world test/test_hello_world.c)
 target_link_libraries(test_hello_world unstickymem)
 add_test(test_hello_world test_hello_world)
+
+# allocations test
+add_executable(test_allocations test/test_allocations.c)
+target_link_libraries(test_allocations unstickymem)
+add_test(test_allocations test_allocations)
