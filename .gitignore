@@ -176,4 +176,4 @@ cmake_uninstall.cmake
 # generated executables
 /autobench
 /test_hello_world
-
+/test_allocations
