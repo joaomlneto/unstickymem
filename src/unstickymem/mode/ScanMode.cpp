@@ -84,7 +84,7 @@ void ScanMode::scannerThread() {
   sleep(_wait_start);
 
   // dump mapping information
-  MemoryMap segments;
+  MemoryMap &segments = MemoryMap::getInstance();
   // segments.print();
 
   for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5 * 5;
@@ -108,9 +108,6 @@ void ScanMode::scannerThread() {
 }
 
 void ScanMode::start() {
-  printParameters();
-  LFATAL("ScanMode: starting");
-
   // set default memory policy to interleaved
   LDEBUG("Setting default memory policy to interleaved");
   set_mempolicy(MPOL_INTERLEAVE,

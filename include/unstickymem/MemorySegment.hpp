@@ -19,12 +19,12 @@ class MemorySegment {
 
  public:
   explicit MemorySegment(char *unparsed_line);
+  explicit MemorySegment(std::string name, void *start, size_t size);
   // getters
   void* startAddress();
   void* endAddress();
   std::string name();
   size_t length();
-  dev_t device();
   // getters for the permissions bitmask
   bool isReadable();
   bool isWriteable();

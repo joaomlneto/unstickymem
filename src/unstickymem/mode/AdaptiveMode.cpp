@@ -75,7 +75,7 @@ void AdaptiveMode::adaptiveThread() {
   sleep(_wait_start);
 
   // dump mapping information
-  MemoryMap segments;
+  MemoryMap &segments = MemoryMap::getInstance();
   // segments.print();
 
   // slowly achieve awesomeness
@@ -114,8 +114,6 @@ void AdaptiveMode::adaptiveThread() {
 }
 
 void AdaptiveMode::start() {
-  printParameters();
-
   // interleave memory by default
   LINFO("Setting default memory policy to interleaved");
   set_mempolicy(MPOL_INTERLEAVE,

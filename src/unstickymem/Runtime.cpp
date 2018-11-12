@@ -14,7 +14,9 @@ namespace unstickymem {
 Runtime::Runtime() {
   loadConfiguration();
   printConfiguration();
-  startSelectedMode();
+  if (_autostart) {
+    startSelectedMode();
+  }
 }
 
 void Runtime::loadConfiguration() {
@@ -31,8 +33,13 @@ void Runtime::loadConfiguration() {
     )
     (
       "UNSTICKYMEM_MODE",
-      po::value<std::string>(&_mode_name)->default_value("scan"),
+      po::value<std::string>(&_mode_name)->default_value("adaptive"),
       "The algorithm to be ran"
+    )
+    (
+      "UNSTICKYMEM_AUTOSTART",
+      po::value<bool>(&_autostart)->default_value(false),
+      "Run the algorithm automatically at startup"
     )
     (
       "UNSTICKYMEM_LOGLEVEL",
@@ -84,10 +91,17 @@ void Runtime::loadConfiguration() {
 }
 
 void Runtime::printConfiguration() {
-  LINFOF("Mode: %s", _mode_name.c_str());
+  LINFOF("Mode:      %s", _mode_name.c_str());
+  LINFOF("Autostart: %s", _autostart ? "enabled" : "disabled");
+}
+
+std::shared_ptr<Mode> Runtime::getMode() {
+  return _mode;
 }
 
 void Runtime::startSelectedMode() {
+  LINFO("Mode parameters:");
+  _mode->printParameters();
   _mode->start();
 }
 

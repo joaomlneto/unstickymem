@@ -14,7 +14,8 @@ namespace unstickymem {
 class Runtime {
  private:
   std::string           _mode_name;
-  std::unique_ptr<Mode> _mode;
+  std::shared_ptr<Mode> _mode;
+  bool                  _autostart;
 
  public:
   Runtime();
@@ -22,6 +23,7 @@ class Runtime {
   void loadConfiguration();
   void printUsage();
   void printConfiguration();
+  std::shared_ptr<Mode> getMode();
   void startSelectedMode();
 };
 

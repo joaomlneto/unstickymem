@@ -18,13 +18,9 @@ class DisabledMode : public Mode {
     return std::make_unique<DisabledMode>();
   }
 
-  po::options_description getOptions() {
-    po::options_description options("Disabled Mode Options");
-    options.add_options()
-      ("dummy", po::value<std::string>(), "placeholder! FIXME!")
-    ;
-    return options;
-  }
+  po::options_description getOptions();
+
+  void printParameters();
 
   void start();
 };

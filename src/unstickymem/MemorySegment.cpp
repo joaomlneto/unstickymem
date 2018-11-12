@@ -1,4 +1,3 @@
-#include <sys/sysmacros.h>
 
 #include "unstickymem/MemorySegment.hpp"
 #include "unstickymem/Logger.hpp"
@@ -7,7 +6,7 @@ namespace unstickymem {
 
 MemorySegment::MemorySegment(char *line) {
   int name_start = 0, name_end = 0;
-  unsigned long addr_start, addr_end;
+  uint64_t addr_start, addr_end;
   char perms_str[8];
 
   // parse string
@@ -41,6 +40,19 @@ MemorySegment::MemorySegment(char *line) {
   }
 }
 
+MemorySegment::MemorySegment(std::string name, void *start, size_t size) {
+    _name = name;
+    _startAddress = start;
+    _endAddress = (void*)(((char*)_startAddress) + size);
+
+    // infer defaults for user allocations?
+    _permissions = (unsigned char) 0x10111;  // PRWX
+    _offset = 0;
+    _deviceMajor = 0;
+    _deviceMinor = 0;
+    _inode = 0;
+}
+
 void* MemorySegment::startAddress() {
   return _startAddress;
 }
@@ -55,10 +67,6 @@ std::string MemorySegment::name() {
 
 size_t MemorySegment::length() {
   return ((char*)_endAddress) - ((char*)_startAddress);
-}
-
-dev_t MemorySegment::device() {
-  return makedev(_deviceMajor, _deviceMinor);
 }
 
 bool MemorySegment::isReadable() {
@@ -96,14 +104,6 @@ void MemorySegment::print() {
            (isReadable() ?   'R' : '-'),
            _name.c_str());
   L->printHorizontalRule(info, (isWriteable() ? 2 : 1));
-  /*
-  if (isHeap())
-    L->printHorizontalRule(">> FOUND THE HEAP!", 3);
-  if (isStack())
-    L->printHorizontalRule(">> FOUND THE STACK!", 4);
-  if (isAnonymous())
-    L->printHorizontalRule(">> ANONYMOUS!", 5);
-  */
 }
 
 bool MemorySegment::isBindable() {

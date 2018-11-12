@@ -12,6 +12,9 @@
 
 extern int   (*WRAP(posix_memalign))(void **, size_t, size_t);
 extern void* (*WRAP(malloc))        (size_t);
+extern void* (*WRAP(calloc))        (size_t, size_t);
+extern void* (*WRAP(realloc))       (void*, size_t);
+extern void* (*WRAP(reallocarray))  (void*, size_t, size_t);
 extern void  (*WRAP(free))          (void*);
 extern void* (*WRAP(mmap))          (void*, size_t, int, int, int, off_t);
 extern int   (*WRAP(brk))           (void*);

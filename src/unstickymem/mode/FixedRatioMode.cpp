@@ -66,9 +66,6 @@ void FixedRatioMode::printParameters() {
 }
 
 void FixedRatioMode::start() {
-  printParameters();
-  LFATAL("Fixed Ratio Mode: starting");
-
   // set default memory policy to interleaved
   LDEBUG("Setting default memory policy to interleaved");
   set_mempolicy(MPOL_INTERLEAVE,

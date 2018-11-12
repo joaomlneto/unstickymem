@@ -20,15 +20,7 @@
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/wrap.hpp"
 #include "unstickymem/Runtime.hpp"
-
-// wait before starting
-#define WAIT_START 2  // seconds
-// how many times should we read the HW counters before progressing?
-#define NUM_POLLS 20
-// how many should we ignore
-#define NUM_POLL_OUTLIERS 5
-// how long should we wait between
-#define POLL_SLEEP 200000  // 0.2s
+#include "unstickymem/mode/Mode.hpp"
 
 static bool OPT_NUM_WORKERS = false;
 int OPT_NUM_WORKERS_VALUE = 1;
@@ -36,6 +28,8 @@ int OPT_NUM_WORKERS_VALUE = 1;
 namespace unstickymem {
 
 static bool is_initialized = false;
+Runtime *runtime;
+MemoryMap *memory;
 
 void read_config(void) {
   OPT_NUM_WORKERS = std::getenv("UNSTICKYMEM_WORKERS") != nullptr;
@@ -61,8 +55,11 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
   read_config();
   print_config();
 
+  // initialize the memory
+  memory = &MemoryMap::getInstance();
+
   // start the runtime
-  unstickymem::Runtime r;
+  runtime = new Runtime();
 
   is_initialized = true;
   LDEBUG("Initialized");
@@ -71,7 +68,7 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
 // library destructor
 __attribute((destructor)) void libunstickymem_finalize(void) {
   // stop all the counters
-  stop_all_counters();
+  // stop_all_counters();
   LINFO("Finalized");
 }
 
@@ -81,23 +78,33 @@ __attribute((destructor)) void libunstickymem_finalize(void) {
 extern "C" {
 #endif
 
-// the public API and wrapped functions go here
+// Public API
 
 void unstickymem_nop(void) {
   LDEBUG("unstickymem NO-OP!");
 }
 
+void unstickymem_start(void) {
+  unstickymem::runtime->startSelectedMode();
+}
+
+void unstickymem_print_memory(void) {
+  unstickymem::memory->print();
+}
+
+// Wrapped functions
+
 void *mmap(void *addr, size_t length, int prot,
            int flags, int fd, off_t offset) {
   // dont do anything fancy if library is not initialized
   if (!unstickymem::is_initialized) {
-    return
-      ((void *(*)(void*, size_t, int, int, int, off_t))dlsym(RTLD_NEXT, "mmap"))
-        (addr, length, prot, flags, fd, offset);
+    return ((void *(*)(void*, size_t, int, int, int, off_t))
+      dlsym(RTLD_NEXT, "mmap"))(addr, length, prot, flags, fd, offset);
   }
-
-  // call original function
-  void *result = WRAP(mmap)(addr, length, prot, flags, fd, offset);
+  // handle the function ourselves
+  //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
+  //void *result = mode->mmap(addr, length, prot, flags, fd, offset);
+  void *result = unstickymem::memory->mmap(addr, length, prot, flags, fd, offset);
   LTRACEF("mmap(%p, %zu, %d, %d, %d, %d) => %p",
           addr, length, prot, flags, fd, offset, result);
   // return the result
@@ -107,9 +114,13 @@ void *mmap(void *addr, size_t length, int prot,
 int brk(void *addr) {
   // dont do anything fancy if library is not initialized
   if (!unstickymem::is_initialized) {
-    return ((int (*)(void*))dlsym(RTLD_NEXT, "brk"))(addr);
+    return ((int (*)(void*))
+      dlsym(RTLD_NEXT, "brk"))(addr);
   }
-  int result = WRAP(brk)(addr);
+  // handle the function ourselves
+  //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
+  //int result = mode->brk(addr);
+  int result = unstickymem::memory->brk(addr);
   LTRACEF("brk(%p) => %d", addr, result);
   return result;
 }
@@ -117,9 +128,13 @@ int brk(void *addr) {
 void *sbrk(intptr_t increment) {
   // dont do anything fancy if library is not initialized
   if (!unstickymem::is_initialized) {
-    return ((void *(*)(intptr_t))dlsym(RTLD_NEXT, "sbrk"))(increment);
+    return ((void *(*)(intptr_t))
+      dlsym(RTLD_NEXT, "sbrk"))(increment);
   }
-  void *result = WRAP(sbrk)(increment);
+  // handle the function ourselves
+  //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
+  //void *result = mode->sbrk(increment);
+  void *result = unstickymem::memory->sbrk(increment);
   LTRACEF("sbrk(%zu) => %p", increment, result);
   return result;
 }
@@ -133,8 +148,10 @@ long mbind(void *addr, unsigned long len, int mode,
                       unsigned long, unsigned)) dlsym(RTLD_NEXT, "mbind"))
         (addr, len, mode, nodemask, maxnode, flags);
   }
-  // FIXME(joaomlneto): for debug purposes!
-  long result = 0;//WRAP(mbind)(addr, len, mode, nodemask, maxnode, flags);
+  // handle the function ourselves
+  //std::shared_ptr<unstickymem::Mode> m = unstickymem::runtime->getMode();
+  //long result = m->mbind(addr, len, mode, nodemask, maxnode, flags);
+  long result = unstickymem::memory->mbind(addr, len, mode, nodemask, maxnode, flags);
   LTRACEF("mbind(%p, %lu, %d, %p, %lu, %u) => %ld",
           addr, len, mode, nodemask, maxnode, flags, result);
   return result;
@@ -143,9 +160,13 @@ long mbind(void *addr, unsigned long len, int mode,
 void *malloc(size_t size) {
     // dont do anything fancy if library is not initialized
     if (!unstickymem::is_initialized) {
-        return ((void* (*)(size_t)) dlsym(RTLD_NEXT, "malloc"))(size);
+        return ((void* (*)(size_t))
+          dlsym(RTLD_NEXT, "malloc"))(size);
     }
-    void *result = WRAP(malloc)(size);
+    // handle the function ourselves
+    //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
+    //void *result = mode->malloc(size);
+    void *result = unstickymem::memory->malloc(size);
     LTRACEF("malloc(%zu) => %p", size, result);
     return result;
 }
@@ -153,9 +174,13 @@ void *malloc(size_t size) {
 void free(void *ptr) {
     // dont do anything fancy if library is not initialized
     if (!unstickymem::is_initialized) {
-        return ((void (*)(void*)) dlsym(RTLD_NEXT, "free"))(ptr);
+        return ((void (*)(void*))
+          dlsym(RTLD_NEXT, "free"))(ptr);
     }
-    WRAP(free)(ptr);
+    // handle the function ourselves
+    //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
+    //mode->free(ptr);
+    unstickymem::memory->free(ptr);
     LTRACEF("free(%p)", ptr);
     return;
 }
@@ -163,11 +188,15 @@ void free(void *ptr) {
 int posix_memalign(void **memptr, size_t alignment, size_t size) {
     // dont do anything fancy if library is not initialized
     if (!unstickymem::is_initialized) {
-        return ((int (*)(void**, size_t, size_t)) dlsym(RTLD_NEXT, "posix_memalign"))
-          (memptr, alignment, size);
+        return ((int (*)(void**, size_t, size_t))
+          dlsym(RTLD_NEXT, "posix_memalign"))(memptr, alignment, size);
     }
-    int result = WRAP(posix_memalign)(memptr, alignment, size);
-    LTRACEF("posix_memalign(%p, %zu, %zu) => %d", memptr, alignment, size, result);
+    // handle the function ourselves
+    //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
+    //int result = mode->posix_memalign(memptr, alignment, size);
+    int result = unstickymem::memory->posix_memalign(memptr, alignment, size);
+    LTRACEF("posix_memalign(%p, %zu, %zu) => %d",
+            memptr, alignment, size, result);
     return result;
 }
 

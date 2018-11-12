@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+void unstickymem_start(void);
+void unstickymem_print_memory(void);
 void unstickymem_nop(void);
 
 #ifdef __cplusplus
