@@ -15,16 +15,16 @@ class MemorySegment {
   unsigned int  _deviceMinor;
   ino_t         _inode;
   unsigned char _permissions;
-	std::string   _name;
+  std::string   _name;
 
  public:
-  MemorySegment(char *unparsed_line);
+  explicit MemorySegment(char *unparsed_line);
+  explicit MemorySegment(std::string name, void *start, size_t size);
   // getters
   void* startAddress();
   void* endAddress();
   std::string name();
   size_t length();
-  dev_t device();
   // getters for the permissions bitmask
   bool isReadable();
   bool isWriteable();
