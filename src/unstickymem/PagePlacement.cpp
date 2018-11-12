@@ -164,7 +164,7 @@ void place_all_pages(MemoryMap &segments, double ratio) {
 
 void place_all_pages(double ratio) {
 	LDEBUGF("place_pages with local ratio %lf", ratio);
-	MemoryMap segments;
+	MemoryMap &segments = MemoryMap::getInstance();
 	place_all_pages(segments, ratio);
 }
 

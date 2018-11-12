@@ -5,6 +5,7 @@
 #ifndef UNSTICKYMEM_LOGGER_HPP_
 #define UNSTICKYMEM_LOGGER_HPP_
 
+#include <dlfcn.h>
 #include <unistd.h>
 
 #include <ctime>
@@ -47,6 +48,7 @@
 #define DIE(msg) \
   LFATAL(msg);\
   perror("perror");\
+  LFATALF("dlerror: %s", dlerror());\
   ::abort();
 
 #define DIEIF(expr, msg) \
@@ -80,8 +82,23 @@ class Logger {
     printHeaderRow();
   }
 
-  inline void set_log_level(LogLevel level) {
+  inline LogLevel loglevel() {
+    return _loglevel;
+  }
+
+  inline void loglevel(LogLevel level) {
+    info(LFMT "Log level: %s",
+         __FILENAME__, __LINE__, __FUNCTION__, level._to_string());
     _loglevel = level;
+  }
+
+  inline void loglevel(std::string level) {
+    if (!LogLevel::_is_valid_nocase(level.c_str())) {
+        error(LFMT "Invalid '%s' loglevel",
+              __FILENAME__, __LINE__, __FUNCTION__, level.c_str());
+        return;
+    }
+    loglevel(+LogLevel::_from_string_nocase(level.c_str()));
   }
 
   inline void printHeaderRow() {
