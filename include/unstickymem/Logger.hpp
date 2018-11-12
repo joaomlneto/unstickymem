@@ -87,6 +87,8 @@ class Logger {
   }
 
   inline void loglevel(LogLevel level) {
+    info(LFMT "Log level: %s",
+         __FILENAME__, __LINE__, __FUNCTION__, level._to_string());
     _loglevel = level;
   }
 

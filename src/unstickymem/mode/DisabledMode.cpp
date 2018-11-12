@@ -10,7 +10,7 @@ static Mode::Registrar<DisabledMode> registrar(DisabledMode::name(),
                                                DisabledMode::description());
 
 void DisabledMode::start() {
-  LFATAL("HERE WE WILL DO NOTHING.");
+  LINFO("Doing nothing");
 }
 
 }  // namespace unstickymem
