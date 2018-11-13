@@ -59,7 +59,7 @@ void AdaptiveMode::adaptiveThread() {
 	DIEIF(sched_setaffinity(syscall(SYS_gettid), sizeof(mask), &mask) < 0,
 			"could not set affinity for hw monitor thread");
 
-	get_stall_rate();
+	get_stall_rate_v2();
 	sleep(_wait_start);
 
 	// dump mapping information
