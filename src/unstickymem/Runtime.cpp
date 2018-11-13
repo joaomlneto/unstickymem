@@ -12,97 +12,85 @@
 namespace unstickymem {
 
 Runtime::Runtime() {
-  loadConfiguration();
-  printConfiguration();
-  if (_autostart) {
-    startSelectedMode();
-  }
+	loadConfiguration();
+	printConfiguration();
+	if (_autostart) {
+		startSelectedMode();
+	}
 }
 
 void Runtime::loadConfiguration() {
-  bool option_help;
-  std::string option_loglevel;
+	bool option_help;
+	std::string option_loglevel;
 
-  // library-level options
-  po::options_description lib_options("Library Options");
-  lib_options.add_options()
-    (
-      "UNSTICKYMEM_HELP",
-      po::value<bool>(&option_help)->default_value(false),
-      "Prints library options"
-    )
-    (
-      "UNSTICKYMEM_MODE",
-      po::value<std::string>(&_mode_name)->default_value("adaptive"),
-      "The algorithm to be ran"
-    )
-    (
-      "UNSTICKYMEM_AUTOSTART",
-      po::value<bool>(&_autostart)->default_value(false),
-      "Run the algorithm automatically at startup"
-    )
-    (
-      "UNSTICKYMEM_LOGLEVEL",
-      po::value<std::string>(&option_loglevel)->default_value("info"),
-      "Log level (trace, debug, info, warn, error, fatal, off)"
-    )
-  ;
+	// library-level options
+	po::options_description lib_options("Library Options");
+	lib_options.add_options()("UNSTICKYMEM_HELP",
+			po::value<bool>(&option_help)->default_value(false),
+			"Prints library options")("UNSTICKYMEM_MODE",
+			po::value < std::string > (&_mode_name)->default_value("adaptive"),
+			"The algorithm to be ran")("UNSTICKYMEM_AUTOSTART",
+			po::value<bool>(&_autostart)->default_value(false),
+			"Run the algorithm automatically at startup")(
+			"UNSTICKYMEM_LOGLEVEL",
+			po::value < std::string > (&option_loglevel)->default_value("info"),
+			"Log level (trace, debug, info, warn, error, fatal, off)");
 
-  // load library options from environment
-  po::variables_map lib_env;
-  po::store(po::parse_environment(lib_options, [lib_options](const std::string& var) {
-    return std::any_of(
-      lib_options.options().cbegin(),
-      lib_options.options().cend(),
-      [var](auto opt) { return var == opt->long_name(); }) ? var : "";
-  }), lib_env);
-  po::notify(lib_env);
+	// load library options from environment
+	po::variables_map lib_env;
+	po::store(
+			po::parse_environment(lib_options,
+					[lib_options](const std::string& var) {
+						return std::any_of(
+								lib_options.options().cbegin(),
+								lib_options.options().cend(),
+								[var](auto opt) {return var == opt->long_name();}) ? var : "";
+					}), lib_env);
+	po::notify(lib_env);
 
-  // get options of selected mode
-  _mode = Mode::getMode(_mode_name);
-  po::options_description mode_options = _mode->getOptions();
+	// get options of selected mode
+	_mode = Mode::getMode(_mode_name);
+	po::options_description mode_options = _mode->getOptions();
 
-  // put all the options together
-  po::options_description all_options("unstickymem options");
-  all_options.add(lib_options).add(mode_options);
+	// put all the options together
+	po::options_description all_options("unstickymem options");
+	all_options.add(lib_options).add(mode_options);
 
-  // parse all options (and ignore undeclared)
-  po::variables_map env;
-  po::store(
-    po::parse_environment(
-      all_options,
-      [all_options](const std::string& var) {
-        return std::any_of(
-          all_options.options().cbegin(),
-          all_options.options().cend(),
-          [var](auto opt) { return var == opt->long_name(); }) ? var : "";
-      }),
-    env);
-  po::notify(env);
+	// parse all options (and ignore undeclared)
+	po::variables_map env;
+	po::store(
+			po::parse_environment(all_options,
+					[all_options](const std::string& var) {
+						return std::any_of(
+								all_options.options().cbegin(),
+								all_options.options().cend(),
+								[var](auto opt) {return var == opt->long_name();}) ? var : "";
+					}), env);
+	po::notify(env);
 
-  // check if user wants help
-  if (option_help) {
-     std::cout << std::endl << all_options << std::endl;
-     exit(0);
-  }
+	// check if user wants help
+	if (option_help) {
+		std::cout << std::endl << all_options << std::endl;
+		exit(0);
+	}
 
-  // set log level
-  L->loglevel(option_loglevel);
+	// set log level
+	L->loglevel(option_loglevel);
 }
 
 void Runtime::printConfiguration() {
-  LINFOF("Mode:      %s", _mode_name.c_str());
-  LINFOF("Autostart: %s", _autostart ? "enabled" : "disabled");
+	LINFOF("Mode:      %s", _mode_name.c_str());
+	LINFOF("Autostart: %s", _autostart ? "enabled" : "disabled");
 }
 
 std::shared_ptr<Mode> Runtime::getMode() {
-  return _mode;
+	return _mode;
 }
 
 void Runtime::startSelectedMode() {
-  LINFO("Mode parameters:");
-  _mode->printParameters();
-  _mode->start();
+	LINFO("Mode parameters:");
+	_mode->printParameters();
+	_mode->start();
 }
 
 }  // namespace unstickymem

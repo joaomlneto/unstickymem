@@ -113,7 +113,8 @@ double get_stall_rate_v2() {
 		nnodes = numa_num_configured_nodes();
 		ncpus_per_node = ncpus / nnodes;
 
-		active_cpus = OPT_NUM_WORKERS_VALUE * ncpus_per_node;
+		//active_cpus = OPT_NUM_WORKERS_VALUE * ncpus_per_node;
+		active_cpus = 1;
 
 		printf(
 				"========================================================================================\n");
@@ -142,47 +143,47 @@ double get_stall_rate_v2() {
 		 * num_workers=4 use node 0,1,2,3,4
 		 *
 		 */
-		j = 0;
-		for (i = 0; i < ncpus; i++) {
+		/*j = 0;
+		 for (i = 0; i < ncpus; i++) {
 
-			switch (OPT_NUM_WORKERS_VALUE) {
-			case 1:
-				if (numa_node_of_cpu(i) == 0) {
-					cpus[j] = i;
-					j++;
-					//printf("NUM_WORKER: %d cpu: %d\n", NUM_WORKERS, i);
-				}
-				break;
-			case 2:
-				if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1) {
-					cpus[j] = i;
-					j++;
-				}
-				break;
-			case 3:
-				if (numa_node_of_cpu(i) == 1 || numa_node_of_cpu(i) == 2
-						|| numa_node_of_cpu(i) == 3) {
-					cpus[j] = i;
-					j++;
-				}
-				break;
-			case 4:
-				if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1
-						|| numa_node_of_cpu(i) == 2
-						|| numa_node_of_cpu(i) == 3) {
-					cpus[j] = i;
-					j++;
-				}
-				break;
-			default:
-				printf(
-						"Sorry, %d Worker nodes is not supported at the moment!\n",
-						OPT_NUM_WORKERS_VALUE);
-				exit(-1);
-			}
-		}
+		 switch (OPT_NUM_WORKERS_VALUE) {
+		 case 1:
+		 if (numa_node_of_cpu(i) == 0) {
+		 cpus[j] = i;
+		 j++;
+		 //printf("NUM_WORKER: %d cpu: %d\n", NUM_WORKERS, i);
+		 }
+		 break;
+		 case 2:
+		 if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1) {
+		 cpus[j] = i;
+		 j++;
+		 }
+		 break;
+		 case 3:
+		 if (numa_node_of_cpu(i) == 1 || numa_node_of_cpu(i) == 2
+		 || numa_node_of_cpu(i) == 3) {
+		 cpus[j] = i;
+		 j++;
+		 }
+		 break;
+		 case 4:
+		 if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1
+		 || numa_node_of_cpu(i) == 2
+		 || numa_node_of_cpu(i) == 3) {
+		 cpus[j] = i;
+		 j++;
+		 }
+		 break;
+		 default:
+		 printf(
+		 "Sorry, %d Worker nodes is not supported at the moment!\n",
+		 OPT_NUM_WORKERS_VALUE);
+		 exit(-1);
+		 }
+		 }*/
 
-		printf("Worker/Monitored CPUs: ");
+		printf("Monitored CPUs: ");
 		for (i = 0; i < active_cpus; i++) {
 			printf("%d ", cpus[i]);
 			cpus[i] = topo->threadPool[i].apicId;

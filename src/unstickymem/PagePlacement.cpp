@@ -155,8 +155,8 @@ void place_pages(MemorySegment &segment, double ratio) {
 
 void place_all_pages(MemoryMap &segments, double ratio) {
 	for (auto &segment : segments) {
-		if (segment.isBindable() && segment.isAnonymous() && segment.isWriteable()
-				&& segment.length() > 1ULL << 20) {
+		if (segment.isBindable() && segment.isAnonymous()
+				&& segment.isWriteable() && segment.length() > 1ULL << 20) {
 			place_pages(segment, ratio);
 		}
 	}
