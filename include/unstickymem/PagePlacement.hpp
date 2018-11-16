@@ -4,8 +4,8 @@
 #include <numaif.h>
 #include <numa.h>
 
-#include "unstickymem/MemoryMap.hpp"
-#include "unstickymem/MemorySegment.hpp"
+#include "unstickymem/memory/MemoryMap.hpp"
+#include "unstickymem/memory/MemorySegment.hpp"
 
 #define PAGE_ALIGN_DOWN(x) (((intptr_t) (x)) & PAGE_MASK)
 #define PAGE_ALIGN_UP(x) ((((intptr_t) (x)) + ~PAGE_MASK) & PAGE_MASK)

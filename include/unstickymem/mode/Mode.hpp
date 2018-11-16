@@ -7,6 +7,7 @@
 
 #include <boost/program_options.hpp>
 
+#include "unstickymem/memory/MemorySegment.hpp"
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/wrap.hpp"
 
@@ -29,28 +30,8 @@ class Mode {
   virtual void printParameters() = 0;
   virtual void start() = 0;
 
-  virtual void posix_memalign(void **memptr, size_t alignment, size_t size, int result) {}
-
-  virtual void malloc(size_t size, void *result) {}
-
-  virtual void calloc(size_t nmemb, size_t size, void *result) {}
-
-  virtual void realloc(void *ptr, size_t size, void *result) {}
-
-  virtual void reallocarray(void *ptr, size_t nmemb, size_t size, void *result) {}
-
-  virtual void free(void *ptr) {}
-
-  virtual void mmap(void *addr, size_t length, int prot,
-                    int flags, int fd, off_t offset, void* result) {}
-
-  virtual void brk(void* addr, int result) {}
-
-  virtual void sbrk(intptr_t increment, void *result) {}
-
-  virtual void mbind(void* addr, unsigned long len, int mode,
-                     const unsigned long *nodemask, unsigned long maxnode,
-                     unsigned flags, long result) {}
+  virtual void processSegmentAddition(const MemorySegment& segment) {}
+  virtual void processSegmentRemoval(const MemorySegment& segment)  {}
 
   static void registerMode(std::string const & name, Description desc) {
     // disallow replacing entries
