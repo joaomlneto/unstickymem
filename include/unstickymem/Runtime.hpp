@@ -17,8 +17,15 @@ class Runtime {
   std::shared_ptr<Mode> _mode;
   bool                  _autostart;
 
- public:
+ private:
   Runtime();
+
+ public:
+  //singleton
+  static Runtime& getInstance(void);
+  Runtime(Runtime const&) = delete;
+  void operator=(Runtime const&) = delete;
+  
   po::options_description getOptions();
   void loadConfiguration();
   void printUsage();
