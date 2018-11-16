@@ -11,9 +11,9 @@
 
 #include "unstickymem/PerformanceCounters.hpp"
 #include "unstickymem/PagePlacement.hpp"
-#include "unstickymem/MemoryMap.hpp"
-#include "unstickymem/mode/AdaptiveMode.hpp"
 #include "unstickymem/Logger.hpp"
+#include "unstickymem/memory/MemoryMap.hpp"
+#include "unstickymem/mode/AdaptiveMode.hpp"
 
 namespace unstickymem {
 

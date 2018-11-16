@@ -13,7 +13,7 @@
 
 #include "unstickymem/PerformanceCounters.hpp"
 #include "unstickymem/PagePlacement.hpp"
-#include "unstickymem/MemoryMap.hpp"
+#include "unstickymem/memory/MemoryMap.hpp"
 #include "unstickymem/mode/ScanMode.hpp"
 #include "unstickymem/Logger.hpp"
 
