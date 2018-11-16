@@ -4,7 +4,6 @@
 #include <iostream>
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/PagePlacement.hpp"
-#include "unstickymem/MemoryMap.hpp"
 
 namespace unstickymem {
 
@@ -149,14 +148,12 @@ void place_pages(void *addr, unsigned long len, double r) {
 
 void place_pages(MemorySegment &segment, double ratio) {
 	// LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
-	DIEIF(!segment.isBindable(), "trying to bind non-bindable segment!");
 	place_pages(segment.startAddress(), segment.length(), ratio);
 }
 
 void place_all_pages(MemoryMap &segments, double ratio) {
 	for (auto &segment : segments) {
-		if (segment.isBindable() && segment.isAnonymous() && segment.isWriteable()
-				&& segment.length() > 1ULL << 20) {
+		if (segment.length() > 1ULL << 20) {
 			place_pages(segment, ratio);
 		}
 	}
