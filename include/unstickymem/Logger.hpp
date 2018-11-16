@@ -13,6 +13,9 @@
 #include <cinttypes>
 #include <cstdio>
 #include <string>
+#include <iostream>
+
+#include <boost/stacktrace.hpp>
 
 #include "better-enums/enum.h"
 
@@ -46,9 +49,13 @@
   L->fatal(LFMT fmt, __FILENAME__, __LINE__, __FUNCTION__, __VA_ARGS__);
 
 #define DIE(msg) \
+  printf("\n\n");\
+  L->printHorizontalRule("FATAL ERROR");\
   LFATAL(msg);\
-  perror("perror");\
+  LFATALF("errno:   %s", strerror(errno));\
   LFATALF("dlerror: %s", dlerror());\
+  perror("perror");\
+  std::cout << boost::stacktrace::stacktrace();\
   ::abort();
 
 #define DIEIF(expr, msg) \
