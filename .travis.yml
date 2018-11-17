@@ -8,8 +8,8 @@ matrix:
       addons:
         apt:
           sources:
+            - sourceline: 'ppa:mhier/libboost-latest'
             - ubuntu-toolchain-r-test
-            - boost-latest
           packages:
             - libboost-all-dev
             - libnuma-dev
@@ -19,8 +19,8 @@ matrix:
       addons:
         apt:
           sources:
+            - sourceline: 'ppa:mhier/libboost-latest'
             - ubuntu-toolchain-r-test
-            - boost-latest
           packages:
             - libboost-all-dev
             - libnuma-dev
@@ -30,9 +30,9 @@ matrix:
       addons:
         apt:
           sources:
+            - sourceline: 'ppa:mhier/libboost-latest'
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-6.0
-            - boost-latest
           packages:
             - libboost-all-dev
             - libnuma-dev
