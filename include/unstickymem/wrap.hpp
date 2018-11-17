@@ -8,7 +8,7 @@
 
 #include <pthread.h>
 
-#define WRAP(x) (_unstickymem_real_##x)
+#define WRAP(x) _unstickymem_real_##x
 
 extern void* (*WRAP(malloc))        (size_t);
 extern void* (*WRAP(calloc))        (size_t, size_t);
