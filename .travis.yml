@@ -11,7 +11,7 @@ matrix:
             - sourceline: 'ppa:mhier/libboost-latest'
             - ubuntu-toolchain-r-test
           packages:
-            - libboost
+            - boost1.67
             - libnuma-dev
             - g++-8
     - name: "gcc 7"
@@ -22,7 +22,7 @@ matrix:
             - sourceline: 'ppa:mhier/libboost-latest'
             - ubuntu-toolchain-r-test
           packages:
-            - libboost
+            - boost1.67
             - libnuma-dev
             - g++-7
     - name: "clang 6"
@@ -34,7 +34,7 @@ matrix:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-6.0
           packages:
-            - libboost
+            - boost1.67
             - libnuma-dev
             - libstdc++-8-dev
             - clang-6.0
