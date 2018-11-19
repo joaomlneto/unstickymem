@@ -113,15 +113,21 @@ void *malloc(size_t size) {
 
 // XXX this is a hack XXX
 // this is to solve the recursion in calloc -> dlsym -> calloc -> ...
-static unsigned char buffer[1024*1024];
+#define DLSYM_CALLOC_BUFFER_LENGTH 1024*1024
+static unsigned char calloc_buffer[DLSYM_CALLOC_BUFFER_LENGTH];
+static bool calloc_buffer_in_use = false;
 
 void *calloc(size_t nmemb, size_t size) {
   static bool inside_unstickymem = false;
   static bool inside_dlsym = false;
 
+  // XXX beware: ugly hack! XXX
   // check if we are inside dlsym -- return a temporary buffer for it!
   if (inside_dlsym) {
-    return buffer;
+    DIEIF(calloc_buffer_in_use, "calling dlsym requires more buffers");
+    calloc_buffer_in_use = true;
+    memset(calloc_buffer, 0, DLSYM_CALLOC_BUFFER_LENGTH);
+    return calloc_buffer;
   }
 
   // dont do anything fancy if library is not initialized
@@ -175,16 +181,15 @@ void *reallocarray(void *ptr, size_t nmemb, size_t size) {
 void free(void *ptr) {
   static bool inside_unstickymem = false;
   // check if this is the temporary buffer passed to dlsym (see calloc)
-  if (ptr == buffer) {
+  if (ptr == calloc_buffer) {
+    calloc_buffer_in_use = false;
     return;
   }
   // dont do anything fancy if library is not initialized
   if (!unstickymem::is_initialized || inside_unstickymem) {
-    //LWARN("bypassing our free");
     return ((void (*)(void*)) dlsym(RTLD_NEXT, "free"))(ptr);
   }
   // handle the function ourselves
-  // LWARNF("running our own free because flag is %s", inside_unstickymem ? "T" : "F");
   inside_unstickymem = true;
   unstickymem::memory->handle_free(ptr);
   LTRACEF("free(%p)", ptr);
@@ -214,8 +219,6 @@ void *mmap(void *addr, size_t length, int prot,
       dlsym(RTLD_NEXT, "mmap"))(addr, length, prot, flags, fd, offset);
   }
   // handle the function ourselves
-  //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
-  //void *result = mode->mmap(addr, length, prot, flags, fd, offset);
   void *result = unstickymem::memory->handle_mmap(addr, length, prot, flags,
                                                   fd, offset);
   LTRACEF("mmap(%p, %zu, %d, %d, %d, %d) => %p",
@@ -248,8 +251,6 @@ int brk(void *addr) {
       dlsym(RTLD_NEXT, "brk"))(addr);
   }
   // handle the function ourselves
-  //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
-  //int result = mode->brk(addr);
   int result = unstickymem::memory->handle_brk(addr);
   LTRACEF("brk(%p) => %d", addr, result);
   return result;
@@ -262,8 +263,6 @@ void *sbrk(intptr_t increment) {
       dlsym(RTLD_NEXT, "sbrk"))(increment);
   }
   // handle the function ourselves
-  //std::shared_ptr<unstickymem::Mode> mode = unstickymem::runtime->getMode();
-  //void *result = mode->sbrk(increment);
   void *result = unstickymem::memory->handle_sbrk(increment);
   LTRACEF("sbrk(%zu) => %p", increment, result);
   return result;
@@ -279,8 +278,6 @@ long mbind(void *addr, unsigned long len, int mode,
         (addr, len, mode, nodemask, maxnode, flags);
   }
   // handle the function ourselves
-  //std::shared_ptr<unstickymem::Mode> m = unstickymem::runtime->getMode();
-  //long result = m->mbind(addr, len, mode, nodemask, maxnode, flags);
   long result = unstickymem::memory->handle_mbind(addr, len, mode, nodemask,
                                                   maxnode, flags);
   LTRACEF("mbind(%p, %lu, %d, %p, %lu, %u) => %ld",

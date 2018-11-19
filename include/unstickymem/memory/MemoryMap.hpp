@@ -9,18 +9,37 @@
 #include <mutex>
 #include <string>
 
+#include <boost/interprocess/managed_shared_memory.hpp>
+#include <boost/interprocess/containers/list.hpp>
+
 #include "unstickymem/memory/MemorySegment.hpp"
 
 namespace unstickymem {
 
+namespace ipc = boost::interprocess;
+using Segment = ipc::managed_shared_memory;
+using Manager = Segment::segment_manager;
+
+template<typename T>
+using Alloc = ipc::allocator<T, Manager>;
+
+template<typename K>
+using List = ipc::list<K, Alloc<K> >;
+
+typedef List<MemorySegment> SegmentsList;
+
 class MemoryMap {
  private:
-  std::list<MemorySegment> _segments;
+  SegmentsList *_segments;
   MemorySegment *_heap = nullptr;
   MemorySegment *_stack = nullptr;
   MemorySegment *_text = nullptr;
   MemorySegment *_data = nullptr;
   std::mutex _segments_lock;
+
+  // FIXME(joaomlneto): this won't work if multiple unstickymem processes
+  //                    are running!!!
+  Segment _segment{ipc::create_only, "unstickymem-map", 1ul<<40};
 
  private:
   MemoryMap();
@@ -36,10 +55,10 @@ class MemoryMap {
   void updateHeap(void);
 
   // iterators
-  std::_List_iterator<MemorySegment>       begin()        noexcept;
-  std::_List_iterator<MemorySegment>       end()          noexcept;
-  std::_List_const_iterator<MemorySegment> cbegin() const noexcept;
-  std::_List_const_iterator<MemorySegment> cend()   const noexcept;
+  SegmentsList::iterator       begin()        noexcept;
+  SegmentsList::iterator       end()          noexcept;
+  SegmentsList::const_iterator cbegin() const noexcept;
+  SegmentsList::const_iterator cend()   const noexcept;
 
   // handle allocations/deallocations
   void* handle_malloc(size_t size);

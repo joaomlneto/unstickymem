@@ -18,6 +18,8 @@ extern void *end;
 namespace unstickymem {
 
 MemoryMap::MemoryMap() {
+  Manager *segment_manager = _segment.get_segment_manager();
+  _segments = _segment.construct<SegmentsList>("segments")(segment_manager);
   char *line = NULL;
   size_t line_size = 0;
 
@@ -31,22 +33,22 @@ MemoryMap::MemoryMap() {
     s.print();
     if (s.name() == "[heap]") {
       // found the heap!
-      _segments.emplace_back(s.startAddress(), s.endAddress(), "heap");
-      _heap = &_segments.back();
+      _segments->emplace_back(s.startAddress(), s.endAddress(), "heap");
+      _heap = &_segments->back();
     } else if (s.name() == "[stack]") {
       // found the stack!
-      _segments.emplace_back(s.startAddress(), s.endAddress(), "stack");
-      _stack = &_segments.back();
+      _segments->emplace_back(s.startAddress(), s.endAddress(), "stack");
+      _stack = &_segments->back();
     } else if (s.contains(&etext - 1)) {
       // found the text segment (read-only data)
-      _segments.emplace_back(s.startAddress(), s.endAddress(), "text");
-      _text = &_segments.back();
+      _segments->emplace_back(s.startAddress(), s.endAddress(), "text");
+      _text = &_segments->back();
     } else if (s.contains(&edata - 1)) {
       // found the data segment (global variables)
-      _segments.emplace_back(s.startAddress(), s.endAddress(), "data");
-      _data = &_segments.back();
+      _segments->emplace_back(s.startAddress(), s.endAddress(), "data");
+      _data = &_segments->back();
     } else if (s.name() == "") {
-      _segments.emplace_back(s.startAddress(), s.endAddress(), "anonymous");
+      _segments->emplace_back(s.startAddress(), s.endAddress(), "anonymous");
     }
   }
 
@@ -74,7 +76,7 @@ MemoryMap& MemoryMap::getInstance(void) {
 }
 
 void MemoryMap::print(void) const {
-  for (auto &segment : _segments) {
+  for (auto &segment : *_segments) {
     segment.print();
   }
 }
@@ -84,20 +86,20 @@ void MemoryMap::updateHeap(void) {
 }
 
 // iterators
-std::_List_iterator<MemorySegment> MemoryMap::begin() noexcept {
-  return _segments.begin();
+SegmentsList::iterator MemoryMap::begin() noexcept {
+  return _segments->begin();
 }
 
-std::_List_iterator<MemorySegment> MemoryMap::end() noexcept {
-  return _segments.end();
+SegmentsList::iterator MemoryMap::end() noexcept {
+  return _segments->end();
 }
 
-std::_List_const_iterator<MemorySegment> MemoryMap::cbegin() const noexcept {
-  return _segments.cbegin();
+SegmentsList::const_iterator MemoryMap::cbegin() const noexcept {
+  return _segments->cbegin();
 }
 
-std::_List_const_iterator<MemorySegment> MemoryMap::cend() const noexcept {
-  return _segments.cend();
+SegmentsList::const_iterator MemoryMap::cend() const noexcept {
+  return _segments->cend();
 }
 
 void *MemoryMap::handle_malloc(size_t size) {
@@ -114,7 +116,7 @@ void *MemoryMap::handle_malloc(size_t size) {
   // if it was not placed in the heap, means it is a new region!
   if (!_heap->contains(result)) {
     std::scoped_lock lock(_segments_lock);
-    _segments.emplace_back(start, end, "malloc");
+    _segments->emplace_back(start, end, "malloc");
   }
   return result;
 }
@@ -133,7 +135,7 @@ void* MemoryMap::handle_calloc(size_t nmemb, size_t size) {
   // if it was not placed in the heap, means it is a new region!
   if (!_heap->contains(result)) {
     std::scoped_lock lock(_segments_lock);
-    _segments.emplace_back(start, end, "calloc");
+    _segments->emplace_back(start, end, "calloc");
   }
   return result;
 }
@@ -152,7 +154,7 @@ void* MemoryMap::handle_realloc(void *ptr, size_t size) {
   // determine if object before was outside the heap
   if (!was_in_heap) {
     std::scoped_lock lock(_segments_lock);
-    _segments.remove_if([ptr](const MemorySegment& s) {
+    _segments->remove_if([ptr](const MemorySegment& s) {
       return s.contains(ptr);
     });
   }
@@ -164,7 +166,7 @@ void* MemoryMap::handle_realloc(void *ptr, size_t size) {
       (reinterpret_cast<intptr_t>(result) + size - 1);
     // insert the new segment
     std::scoped_lock lock(_segments_lock);
-    _segments.emplace_back(start, end, "realloc");
+    _segments->emplace_back(start, end, "realloc");
   }
   return result;
 }
@@ -185,7 +187,7 @@ void MemoryMap::handle_free(void *ptr) {
   } else {
     // if not in heap, remove the mapped segment
     std::scoped_lock lock(_segments_lock);
-    _segments.remove_if([ptr](const MemorySegment& s) {
+    _segments->remove_if([ptr](const MemorySegment& s) {
       return s.contains(ptr);
     });
   }
@@ -207,7 +209,7 @@ int MemoryMap::handle_posix_memalign(void **memptr, size_t alignment,
   // add the new region
   if (!_heap->contains(*memptr)) {
     std::scoped_lock lock(_segments_lock);
-    _segments.emplace_back(start, end, "posix_memalign");
+    _segments->emplace_back(start, end, "posix_memalign");
   }
 
   return result;
@@ -224,7 +226,7 @@ void* MemoryMap::handle_mmap(void *addr, size_t length, int prot,
 
   // insert the new segment
   std::scoped_lock lock(_segments_lock);
-  _segments.emplace_back(start, end, "mmap");
+  _segments->emplace_back(start, end, "mmap");
 
   // return the result
   return result;
@@ -235,7 +237,7 @@ int MemoryMap::handle_munmap(void *addr, size_t length) {
 
   // remove the mapped region
   std::scoped_lock lock(_segments_lock);
-  _segments.remove_if([addr](const MemorySegment& s) {
+  _segments->remove_if([addr](const MemorySegment& s) {
     return s.contains(addr);
   });
 
