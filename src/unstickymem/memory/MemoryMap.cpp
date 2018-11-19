@@ -32,7 +32,6 @@ MemoryMap::MemoryMap() {
   size_t line_size = 0;
   while (getline(&line, &line_size, maps) > 0) {
     MemorySegment s(line);
-    s.print();
     if (s.name() == "[heap]") {
       // found the heap!
       _segments->emplace_back(s.startAddress(), s.endAddress(), "heap");
