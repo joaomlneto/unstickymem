@@ -6,14 +6,13 @@
 
 #include <iterator>
 #include <list>
-#include <vector>
+#include <mutex>
 #include <string>
 
 #include "unstickymem/memory/MemorySegment.hpp"
+#include "unstickymem/PagePlacement.hpp"
 
 namespace unstickymem {
-
-class MemorySegment;
 
 class MemoryMap {
  private:
@@ -22,6 +21,7 @@ class MemoryMap {
   MemorySegment *_stack = nullptr;
   MemorySegment *_text = nullptr;
   MemorySegment *_data = nullptr;
+  std::mutex _segments_lock;
 
  private:
   MemoryMap();

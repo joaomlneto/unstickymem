@@ -11,13 +11,6 @@
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/wrap.hpp"
 
-
-#define PAGE_SIZE getpagesize()
-#define PAGE_MASK (PAGE_SIZE - 1)
-
-#define PAGE_ALIGN_DOWN(x) (((intptr_t) (x)) & ~PAGE_MASK)
-#define PAGE_ALIGN_UP(x) ((((intptr_t) (x)) + PAGE_MASK) & ~PAGE_MASK)
-
 extern void *etext;
 extern void *edata;
 extern void *end;
@@ -120,6 +113,7 @@ void *MemoryMap::handle_malloc(size_t size) {
 
   // if it was not placed in the heap, means it is a new region!
   if (!_heap->contains(result)) {
+    std::scoped_lock lock(_segments_lock);
     _segments.emplace_back(start, end, "malloc");
   }
   return result;
@@ -138,6 +132,7 @@ void* MemoryMap::handle_calloc(size_t nmemb, size_t size) {
 
   // if it was not placed in the heap, means it is a new region!
   if (!_heap->contains(result)) {
+    std::scoped_lock lock(_segments_lock);
     _segments.emplace_back(start, end, "calloc");
   }
   return result;
@@ -156,6 +151,7 @@ void* MemoryMap::handle_realloc(void *ptr, size_t size) {
 
   // determine if object before was outside the heap
   if (!was_in_heap) {
+    std::scoped_lock lock(_segments_lock);
     _segments.remove_if([ptr](const MemorySegment& s) {
       return s.contains(ptr);
     });
@@ -165,6 +161,7 @@ void* MemoryMap::handle_realloc(void *ptr, size_t size) {
     void *start = reinterpret_cast<void*>PAGE_ALIGN_DOWN(result);
     void *end = reinterpret_cast<void*>
       (PAGE_ALIGN_UP(reinterpret_cast<intptr_t>(result) + size) - 1);
+    std::scoped_lock lock(_segments_lock);
     _segments.emplace_back(start, end, "realloc");
   }
   return result;
@@ -185,6 +182,7 @@ void MemoryMap::handle_free(void *ptr) {
     updateHeap();
   } else {
     // if not in heap, remove the mapped segment
+    std::scoped_lock lock(_segments_lock);
     _segments.remove_if([ptr](const MemorySegment& s) {
       return s.contains(ptr);
     });
@@ -206,6 +204,7 @@ int MemoryMap::handle_posix_memalign(void **memptr, size_t alignment,
 
   // add the new region
   if (!_heap->contains(*memptr)) {
+    std::scoped_lock lock(_segments_lock);
     _segments.emplace_back(start, end, "posix_memalign");
   }
 
@@ -222,6 +221,7 @@ void* MemoryMap::handle_mmap(void *addr, size_t length, int prot,
     (PAGE_ALIGN_UP(reinterpret_cast<intptr_t>(result) + length) - 1);
 
   // insert the new segment
+  std::scoped_lock lock(_segments_lock);
   _segments.emplace_back(start, end, "mmap");
 
   // return the result
@@ -232,6 +232,7 @@ int MemoryMap::handle_munmap(void *addr, size_t length) {
   int result = WRAP(munmap)(addr, length);
 
   // remove the mapped region
+  std::scoped_lock lock(_segments_lock);
   _segments.remove_if([addr](const MemorySegment& s) {
     return s.contains(addr);
   });

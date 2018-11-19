@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "unstickymem/memory/MemoryMap.hpp"
-
 namespace unstickymem {
 
 class MemorySegment {
@@ -24,7 +22,12 @@ class MemorySegment {
   void* startAddress() const;
   void* endAddress() const;
   std::string name() const;
+
+  // get derived attributes
+  void* pageAlignedStartAddress() const;
+  void* pageAlignedEndAddress() const;
   size_t length() const;
+  size_t pageAlignedLength() const;
 
   // setters
   void startAddress(void *addr);

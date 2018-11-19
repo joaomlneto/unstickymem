@@ -1,4 +1,5 @@
 
+#include "unstickymem/memory/MemoryMap.hpp"
 #include "unstickymem/memory/MemorySegment.hpp"
 #include "unstickymem/Logger.hpp"
 
@@ -60,8 +61,24 @@ void MemorySegment::name(std::string name) {
   _name = name;
 }
 
+void* MemorySegment::pageAlignedStartAddress() const {
+  return reinterpret_cast<void*>(PAGE_ALIGN_DOWN(_startAddress));
+}
+
+void* MemorySegment::pageAlignedEndAddress() const {
+  return reinterpret_cast<void*>(PAGE_ALIGN_UP(_endAddress);
+}
+
 size_t MemorySegment::length() const {
-  return ((char*)_endAddress) - ((char*)_startAddress) + 1;
+  return reinterpret_cast<intptr_t>(_endAddress)
+       - reinterpret_cast<intptr_t>(_startAddress)
+       + 1;
+}
+
+size_t MemorySegment::pageAlignedLength() const {
+  return reinterpret_cast<intptr_t>(pageAlignedEndAddress())
+       - reinterpret_cast<intptr_t>(pageAlignedStartAddress())
+       + 1;
 }
 
 void MemorySegment::print() const {
