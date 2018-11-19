@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include <boost/interprocess/shared_memory_object.hpp>
 
 #include "unstickymem/unstickymem.h"
 #include "unstickymem/PerformanceCounters.hpp"
@@ -55,6 +56,9 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
   // parse and display the configuration
   read_config();
   print_config();
+
+  // remove the previous unstickymem library segment (if exists)
+  boost::interprocess::shared_memory_object::remove("unstickymem");
 
   // initialize the memory
   memory = &MemoryMap::getInstance();

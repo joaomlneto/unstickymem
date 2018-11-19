@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include <iterator>
-#include <list>
 #include <mutex>
 #include <string>
 
@@ -39,7 +38,7 @@ class MemoryMap {
 
   // FIXME(joaomlneto): this won't work if multiple unstickymem processes
   //                    are running!!!
-  Segment _segment{ipc::create_only, "unstickymem-map", 1ul<<40};
+  Segment _segment{ipc::create_only, "unstickymem", 1ul<<40};
 
  private:
   MemoryMap();

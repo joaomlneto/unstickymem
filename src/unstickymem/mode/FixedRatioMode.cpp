@@ -83,7 +83,6 @@ void FixedRatioMode::start() {
 
   // print stall_rate to a file for debugging!
   unstickymem_log(stall_rate, _local_ratio);
-  pthread_exit(0);
 }
 
 }  // namespace unstickymem

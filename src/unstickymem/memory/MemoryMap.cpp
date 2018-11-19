@@ -18,16 +18,18 @@ extern void *end;
 namespace unstickymem {
 
 MemoryMap::MemoryMap() {
+  // create independent segment to store the MemoryMap
+  LFATAL("going to create segment");
   Manager *segment_manager = _segment.get_segment_manager();
-  _segments = _segment.construct<SegmentsList>("segments")(segment_manager);
-  char *line = NULL;
-  size_t line_size = 0;
+  _segments = _segment.construct<SegmentsList>("unstickymem")(segment_manager);
 
   // open maps file
   FILE *maps = fopen("/proc/self/maps", "r");
   DIEIF(maps == nullptr, "error opening maps file");
 
   // parse the maps file, searching for the heap start
+  char *line = NULL;
+  size_t line_size = 0;
   while (getline(&line, &line_size, maps) > 0) {
     MemorySegment s(line);
     s.print();
@@ -70,6 +72,7 @@ MemoryMap& MemoryMap::getInstance(void) {
     void *buf = WRAP(mmap)(nullptr, sizeof(MemoryMap), PROT_READ | PROT_WRITE,
                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     DIEIF(buf == MAP_FAILED, "error allocating space for memory map object");
+    LFATAL("before constructor");
     object = new(buf) MemoryMap();
   }
   return *object;
