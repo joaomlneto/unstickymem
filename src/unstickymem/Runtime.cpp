@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-=======
-
 #include <sys/mman.h>
 
->>>>>>> wrapper
 #include <algorithm>
 #include <iostream>
 
