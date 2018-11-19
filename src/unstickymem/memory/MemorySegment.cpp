@@ -1,6 +1,6 @@
 
-#include "unstickymem/memory/MemoryMap.hpp"
 #include "unstickymem/memory/MemorySegment.hpp"
+#include "unstickymem/PagePlacement.hpp"
 #include "unstickymem/Logger.hpp"
 
 namespace unstickymem {
@@ -66,7 +66,7 @@ void* MemorySegment::pageAlignedStartAddress() const {
 }
 
 void* MemorySegment::pageAlignedEndAddress() const {
-  return reinterpret_cast<void*>(PAGE_ALIGN_UP(_endAddress);
+  return reinterpret_cast<void*>(PAGE_ALIGN_UP(_endAddress));
 }
 
 size_t MemorySegment::length() const {

@@ -10,7 +10,6 @@
 #include <string>
 
 #include "unstickymem/memory/MemorySegment.hpp"
-#include "unstickymem/PagePlacement.hpp"
 
 namespace unstickymem {
 

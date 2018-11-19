@@ -104,9 +104,9 @@ void *MemoryMap::handle_malloc(size_t size) {
   void *result = WRAP(malloc)(size);
 
   // compute the end address
-  void *start = reinterpret_cast<void*>PAGE_ALIGN_DOWN(result);
+  void *start = result;
   void *end = reinterpret_cast<void*>
-    (PAGE_ALIGN_UP(reinterpret_cast<intptr_t>(result) + size) - 1);
+    (reinterpret_cast<intptr_t>(result) + size - 1);
 
   // update the heap
   updateHeap();
@@ -123,9 +123,9 @@ void* MemoryMap::handle_calloc(size_t nmemb, size_t size) {
   void *result = WRAP(calloc)(nmemb, size);
 
   // compute end address
-  void *start = reinterpret_cast<void*>PAGE_ALIGN_DOWN(result);
+  void *start = result;
   void *end = reinterpret_cast<void*>
-    (PAGE_ALIGN_UP(reinterpret_cast<intptr_t>(result) + (nmemb * size)) - 1);
+    (reinterpret_cast<intptr_t>(result) + (nmemb * size) - 1);
 
   // update the heap
   updateHeap();
@@ -158,9 +158,11 @@ void* MemoryMap::handle_realloc(void *ptr, size_t size) {
   }
 
   if (!is_in_heap) {
-    void *start = reinterpret_cast<void*>PAGE_ALIGN_DOWN(result);
+    // compute start and end address
+    void *start = result;
     void *end = reinterpret_cast<void*>
-      (PAGE_ALIGN_UP(reinterpret_cast<intptr_t>(result) + size) - 1);
+      (reinterpret_cast<intptr_t>(result) + size - 1);
+    // insert the new segment
     std::scoped_lock lock(_segments_lock);
     _segments.emplace_back(start, end, "realloc");
   }
@@ -169,7 +171,7 @@ void* MemoryMap::handle_realloc(void *ptr, size_t size) {
 
 void* MemoryMap::handle_reallocarray(void *ptr, size_t nmemb, size_t size) {
   void *result = WRAP(reallocarray)(ptr, nmemb, size);
-  DIE("NOT IMPLEMENTED");
+  LFATAL("REALLOCARRAY NOT IMPLEMENTED");
   return result;
 }
 
@@ -198,9 +200,9 @@ int MemoryMap::handle_posix_memalign(void **memptr, size_t alignment,
   updateHeap();
 
   // compute region start and address
-  void *start = reinterpret_cast<void*>PAGE_ALIGN_DOWN(*memptr);
+  void *start = *memptr;
   void *end = reinterpret_cast<void*>
-    (PAGE_ALIGN_UP(reinterpret_cast<intptr_t>(*memptr) + size) - 1);
+    (reinterpret_cast<intptr_t>(*memptr) + size - 1);
 
   // add the new region
   if (!_heap->contains(*memptr)) {
@@ -216,9 +218,9 @@ void* MemoryMap::handle_mmap(void *addr, size_t length, int prot,
   void *result = WRAP(mmap)(addr, length, prot, flags, fd, offset);
 
   // compute the end address
-  void *start = reinterpret_cast<void*>PAGE_ALIGN_DOWN(result);
+  void *start = result;
   void *end = reinterpret_cast<void*>
-    (PAGE_ALIGN_UP(reinterpret_cast<intptr_t>(result) + length) - 1);
+    (reinterpret_cast<intptr_t>(result) + length - 1);
 
   // insert the new segment
   std::scoped_lock lock(_segments_lock);
