@@ -1,6 +1,7 @@
 #ifndef UNSTICKYMEM_PAGE_PLACEMENT_HPP_
 #define UNSTICKYMEM_PAGE_PLACEMENT_HPP_
 
+#include <unistd.h>
 #include <numaif.h>
 #include <numa.h>
 
