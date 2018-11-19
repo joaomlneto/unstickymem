@@ -34,8 +34,8 @@ do
 	  echo -e "${red}Cores: ${cpus[$i]}\tratio: ${ratios[$j]}${reset}"
     export UNSTICKYMEM_FIXED_RATIO=${ratios[$j]}
     echo -e "${red}UNSTICKYMEM_FIXED_RATIO=${UNSTICKYMEM_FIXED_RATIO}${reset}"
-	  run_cmd "/usr/bin/time -f%e /home/dgureya/adaptive_bw_bench/bandwidth_bench_with_unstickymem -c ${cpus[$i]}"
-	  #run_cmd "/usr/bin/time -f%e numactl --physcpubind=${cpus[$i]} $@"
+	  #run_cmd "/usr/bin/time -f%e /home/dgureya/adaptive_bw_bench/bandwidth_bench_with_unstickymem -c ${cpus[$i]}"
+	  run_cmd "/usr/bin/time -f%e numactl --physcpubind=${cpus[$i]} $@"
     unset UNSTICKYMEM_FIXED_RATIO
   done
 done

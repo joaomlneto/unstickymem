@@ -2,11 +2,59 @@
 #include <sys/syscall.h>
 #include <numeric>
 #include <iostream>
+#include "unstickymem/unstickymem.h"
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/PagePlacement.hpp"
 #include "unstickymem/MemoryMap.hpp"
 
+#include <math.h>
+
+static int pagesize;
+
+RECORD nodes_info_temp[MAX_NODES];
+int weight_initialized = 0;
+
 namespace unstickymem {
+
+size_t round_up(size_t my_size, int pagesize) {
+	if (pagesize == 0)
+		return my_size;
+
+	int remainder = my_size % pagesize;
+	//int page_num = my_size / pagesize;
+	if (remainder == 0)
+		return my_size;
+
+	return my_size + pagesize - remainder;
+	//return pagesize * page_num;
+}
+
+void print_command(char *cmd) {
+	FILE *fp;
+	char buf[1024];
+
+	if ((fp = popen(cmd, "r")) == NULL) {
+		perror("popen");
+		exit(-1);
+	}
+
+	while (fgets(buf, sizeof(buf), fp) != NULL) {
+		printf("%s", buf);
+	}
+
+	if (pclose(fp)) {
+		perror("pclose");
+		exit(-1);
+	}
+}
+
+void print_node_allocations() {
+	char buf[1024];
+	snprintf(buf, sizeof(buf), "numastat -c %d", getpid());
+	printf("\x1B[32m");
+	print_command(buf);
+	printf("\x1B[0m");
+}
 
 void place_on_node(char *addr, unsigned long len, int node) {
 	DIEIF(node < 0 || node >= numa_num_configured_nodes(),
@@ -61,59 +109,199 @@ void force_uniform_interleave(MemorySegment &segment) {
 			segment.length());
 }
 
-/*
- void place_pages2(MemorySegment &segment, double ratios[], int ratios_size) {
- //void *addr = segment.startAddress();
- unsigned long len = segment.length();
- // validate input
- DIEIF(ratios_size != numa_num_configured_nodes(),
- "Must specify one ratio for each of the NUMA nodes configured");
- DIEIF(len % PAGE_SIZE != 0,
- "Size of region must be a multiple of the page size");
- //LDEBUGF("sum is %lf", std::accumulate(&ratios[0], &ratios[ratios_size], 0.0));
- // FIXME(joaomlneto): working with doubles is a pain; alternatives?
- DIEIF(std::accumulate(&ratios[0], &ratios[ratios_size], 0.0) < 0.99 ||
- std::accumulate(&ratios[0], &ratios[ratios_size], 0.0) > 1.01,
- "Sum of ratios must be ~1");
- char *addr = reinterpret_cast<char*>(segment.startAddress());
- segment.print();
- for (int i=0; i < ratios_size; i++) {
- unsigned long len_unaligned = segment.length() * ratios[i];
- unsigned long len_bind = std::min(len, len_unaligned + PAGE_SIZE - len_unaligned % PAGE_SIZE);
- LINFOF("binding %lu pages (~%lf%%) to node %d",
- len_bind / PAGE_SIZE, (double)len_bind / segment.length(), i);
- //DIEIF(mbind(addr, len_bind, MPOL_));
- len -= len_bind;
- addr += len_bind;
- }
- DIEIF(len != 0, "we didnt do a good job splitting the pages!");
- }
+//interleave pages using the weights
+void place_pages_weighted(void *addr, unsigned long len, double r) {
 
- void place_pages2(MemorySegment &segment, double ratio) {
- std::vector<double> ratios(numa_num_configured_nodes());
- ratios[0] = ratio;
- for (size_t i=1; i<ratios.size(); i++) {
- ratios[i] = (1 - ratio) / (numa_num_configured_nodes() - 1);
- }
- for (auto i: ratios)
- std::cout << i << ' ';
- std::cout << std::endl;
- place_pages2(segment, ratios.data(), ratios.size());
- }
- */
+	size_t size = len;
+	void *start = addr;
+	int i;
+	pagesize = numa_pagesize(); // pagesize
+	//printf("original size: %zu\n", size);
+
+	// nodes that can still receive pages
+	struct bitmask *node_set = numa_bitmask_alloc(MAX_NODES); //numa_allocate_nodemask();
+	numa_bitmask_setall(node_set);
+
+	float w = 0; // weight that has already been allocated among the nodes that can still receive pages
+	int a = MAX_NODES; // number of nodes which can still receive pages
+
+	size_t total_size = 0; // total size interleaved so far
+	size_t my_size = 0;
+
+	size_t remaining_a;
+
+	for (i = 0; i <= MAX_NODES; ++i) {
+		if (total_size == size) {
+			break;
+		}
+		// b = size that remains to allocate in the next node with smallest beta
+		float b = nodes_info_temp[i].weight - w;
+		//printf("i: %d\tb: %.2f\ta:%d\n", i, b, a);
+		//if (b != 0) {
+		my_size = a * (b / 100) * size;
+		//printf("my_size_a: %ld\n", my_size);
+
+		my_size = round_up(my_size, pagesize);
+
+		remaining_a = size - total_size;
+		if (my_size > remaining_a) {
+			my_size = remaining_a;
+		}
+		//printf("my_size_b: %zu\n", my_size);
+		total_size += my_size;
+
+		// only interleave if memory is in the region
+		if (my_size != 0) {
+			DIEIF(
+					mbind(start, my_size, MPOL_INTERLEAVE, node_set->maskp,
+							node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT)
+							!= 0, "mbind interleave failed");
+		}
+
+		start += my_size; //increment base to a new location
+		a--; //one less node where to allocate pages
+		w = nodes_info_temp[i].weight; //we update the size already allocated in the remaining nodes
+		if (numa_bitmask_isbitset(node_set, nodes_info_temp[i].id)) {
+			numa_bitmask_clearbit(node_set, nodes_info_temp[i].id); //remove node i from the set of remaining nodes
+		}
+	}
+
+	numa_bitmask_free(node_set);
+}
+
+//weighted placement with interleaving respecting s
+void place_pages_weighted_s(void *addr, unsigned long len, double s) {
+
+	int i = 0;
+
+	if (weight_initialized == 0) {
+		double new_s = 0;
+
+		new_s = sum_ww + s;
+		//Calculate new weights
+		printf("NODE Weights: \t");
+		double sum = 0;
+
+		for (i = 0; i < MAX_NODES; i++) {
+			switch (OPT_NUM_WORKERS_VALUE) {
+			case 1:
+				//workers: 0
+				if (nodes_info[i].id == 0) {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				} else {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_nww * (100 - new_s))
+									* 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				}
+				break;
+			case 2:
+				//workers: 0, 1
+				if (nodes_info[i].id == 0 || nodes_info[i].id == 1) {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				} else {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_nww * (100 - new_s))
+									* 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				}
+				break;
+			case 3:
+				//workers: 1,2,3
+				if (nodes_info[i].id == 1 || nodes_info[i].id == 2
+						|| nodes_info[i].id == 3) {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				} else {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_nww * (100 - new_s))
+									* 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				}
+				break;
+			case 4:
+				//workers: 0,1,2,3
+				if (nodes_info[i].id == 0 || nodes_info[i].id == 1
+						|| nodes_info[i].id == 2 || nodes_info[i].id == 3) {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				} else {
+					nodes_info_temp[i].id = nodes_info[i].id;
+					nodes_info_temp[i].weight = round(
+							(nodes_info[i].weight / sum_nww * (100 - new_s))
+									* 10) / 10;
+					printf("%.2f\t", nodes_info_temp[i].weight);
+					sum += nodes_info_temp[i].weight;
+				}
+				break;
+			default:
+				LINFOF(
+						"Sorry, %d Worker nodes is not supported at the moment!\n",
+						OPT_NUM_WORKERS_VALUE)
+				;
+				exit(-1);
+			}
+		}
+
+		printf("%.2f\n", sum);
+
+		printf("NODE IDs: \t");
+		for (i = 0; i < MAX_NODES; i++) {
+			printf("%d\t", nodes_info_temp[i].id);
+		}
+		printf("\n");
+
+		if ((check_sum(nodes_info_temp)) != 100) {
+			printf("**Sum of New weights must be equal to 100, sum=%d!**\n",
+					check_sum(nodes_info_temp));
+			exit(-1);
+		}
+
+		printf(
+				"===========================================================================\n");
+		weight_initialized = 1;
+	}
+
+	//Enforce the new weights!
+	place_pages_weighted(addr, len, s);
+}
 
 void place_pages(void *addr, unsigned long len, double r) {
-	// compute the ratios to input to `mbind`
+
+// compute the ratios to input to `mbind`
 	double local_ratio = r - (1.0 - r) / (numa_num_configured_nodes() - 1);
 	double interleave_ratio = 1.0 - local_ratio;
-	// compute the lengths of the interleaved and local segments
+
+// compute the lengths of the interleaved and local segments
 	unsigned long interleave_len = interleave_ratio * len;
 	interleave_len &= PAGE_MASK;
+
 	unsigned long local_len = (len - interleave_len) & PAGE_MASK;
-	// the starting address for the local segment
+
+// the starting address for the local segment
 	void *local_addr = ((char*) addr) + interleave_len;
 
-	// validate input
+// validate input
 	DIEIF(r < 0.0 || r > 1.0, "specified ratio must be between 0 and 1!");
 	DIEIF(local_ratio < 0.0 || local_ratio > 1.0,
 			"bad local_ratio calculation");
@@ -126,18 +314,18 @@ void place_pages(void *addr, unsigned long len, double r) {
 	DIEIF((local_len + interleave_len) != (len & PAGE_MASK),
 			"local and interleave lengths should total the original length");
 
-	// interleave some portion of the memory segment between all NUMA nodes
+// interleave some portion of the memory segment between all NUMA nodes
 	/*LTRACEF("mbind(%p, %lu, MPOL_INTERLEAVE, numa_get_mems_allowed(), MPOL_MF_MOVE | MPOL_MF_STRICT)",
 	 addr, interleave_len);
 	 DIEIF(mbind(addr, interleave_len, MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
 	 numa_get_mems_allowed()->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
 	 "mbind interleave failed");*/
 
-	// check if there is something left to bind to local
+// check if there is something left to bind to local
 	if (local_len <= 0)
 		return;
 
-	// bind the remainder to the local node
+// bind the remainder to the local node
 	unsigned long zero_mask = 0;
 	LTRACEF(
 			"mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
@@ -150,7 +338,9 @@ void place_pages(void *addr, unsigned long len, double r) {
 void place_pages(MemorySegment &segment, double ratio) {
 	// LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
 	DIEIF(!segment.isBindable(), "trying to bind non-bindable segment!");
-	place_pages(segment.startAddress(), segment.length(), ratio);
+	//place_pages(segment.startAddress(), segment.length(), ratio);
+	//place_pages_weighted(segment.startAddress(), segment.length(), ratio);
+	place_pages_weighted_s(segment.startAddress(), segment.length(), ratio);
 }
 
 void place_all_pages(MemoryMap &segments, double ratio) {
@@ -160,11 +350,13 @@ void place_all_pages(MemoryMap &segments, double ratio) {
 			place_pages(segment, ratio);
 		}
 	}
+	print_node_allocations();
+	weight_initialized = 0;
 }
 
 void place_all_pages(double ratio) {
 	LDEBUGF("place_pages with local ratio %lf", ratio);
-	MemoryMap &segments = MemoryMap::getInstance();
+	MemoryMap segments;
 	place_all_pages(segments, ratio);
 }
 

@@ -84,7 +84,8 @@ double get_stall_rate_v2() {
 
 	//list of all the events for the different architectures supported
 	//char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
-	char amd_estr[] = "DISPATCH_STALLS:PMC0"; //AMD
+	char amd_estr[] = "DISPATCH_STALLS:PMC0"; //AMD DISPATCH_STALL_LDQ_FULL,DISPATCH_STALL_FP_SCHED_Q_FULL
+	//char amd_estr[] = "DISPATCH_STALL_INSTRUCTION_RETIRED_Q_FULL:PMC0";
 	//char intel_estr[] =
 	//		"CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
 	char intel_estr[] = "RESOURCE_STALLS_ANY:PMC0"; //Intel Broadwell EP
@@ -138,7 +139,7 @@ double get_stall_rate_v2() {
 		/*
 		 * Get the cpus of the worker nodes
 		 * num_workers=1 use node 0
-		 * num_workers==2 use node 0, 1
+		 * num_workers=2 use node 0, 1
 		 * num_workers=3 use node 1,2,3
 		 * num_workers=4 use node 0,1,2,3,4
 		 *
@@ -183,9 +184,9 @@ double get_stall_rate_v2() {
 		 }
 		 }*/
 
-		printf("Monitored CPUs: ");
+		printf("Worker/Monitored CPUs: ");
 		for (i = 0; i < active_cpus; i++) {
-			printf("%d ", cpus[i]);
+			//printf("%d ", cpus[i]);
 			cpus[i] = topo->threadPool[i].apicId;
 		}
 		printf("\n");
@@ -316,6 +317,12 @@ double get_stall_rate_v2() {
 	stalls = stalls / active_cpus;
 	double stall_rate = ((double) (stalls - prev_stalls))
 			/ (clock - prev_clockcounts);
+
+	//printf("clock: %" PRIu64 " prev_clockcounts: %" PRIu64 " clock - prev_clockcounts: %" PRIu64 "\n", clock, prev_clockcounts, (clock - prev_clockcounts));
+	//printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
+	//		stalls, prev_stalls, (stalls - prev_stalls));
+	//printf("stall_rate: %f\n", stall_rate);
+
 	//prev_cycles = cycles;
 	prev_stalls = stalls;
 	prev_clockcounts = clock;
@@ -331,6 +338,7 @@ double get_stall_rate_v2() {
 	}
 
 	return stall_rate;
+	//return stalls;
 }
 
 void stop_all_counters() {
@@ -379,32 +387,33 @@ double get_average_stall_rate(size_t num_measurements,
 		useconds_t usec_between_measurements, size_t num_outliers_to_filter) {
 	std::vector<double> measurements(num_measurements);
 
-// throw away a measurement, just because
-//get_stall_rate();
+	// throw away a measurement, just because
+	//get_stall_rate();
 	get_stall_rate_v2();
 	usleep(usec_between_measurements);
 
-// do N measurements, T usec apart
+	// do N measurements, T usec apart
 	for (size_t i = 0; i < num_measurements; i++) {
 		//measurements[i] = get_stall_rate();
 		measurements[i] = get_stall_rate_v2();
 		unstickymem_log(measurements[i], i);
+		//unstickymem_log(measurements[i], i);
 		usleep(usec_between_measurements);
 	}
 
-	for (auto m : measurements) {
-		std::cout << m << " ";
-	}
-	std::cout << std::endl;
+	/*for (auto m : measurements) {
+	 std::cout << m << " ";
+	 }
+	 std::cout << std::endl;*/
 
-// filter outliers
+	// filter outliers
 	std::sort(measurements.begin(), measurements.end());
 	measurements.erase(measurements.end() - num_outliers_to_filter,
 			measurements.end());
 	measurements.erase(measurements.begin(),
 			measurements.begin() + num_outliers_to_filter);
 
-// return the average
+	// return the average
 	double sum = std::accumulate(measurements.begin(), measurements.end(), 0.0);
 	return sum / measurements.size();
 }
@@ -433,4 +442,4 @@ inline uint64_t readpmc(int32_t n) {
 #endif
 
 }
- // namespace unstickymem
+	// namespace unstickymem
