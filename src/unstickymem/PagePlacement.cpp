@@ -13,8 +13,8 @@ void place_on_node(char *addr, unsigned long len, int node) {
 	struct bitmask *nodemask = numa_bitmask_alloc(numa_num_configured_nodes());
 	numa_bitmask_setbit(nodemask, node);
 	DIEIF(
-			mbind(addr, len, MPOL_BIND, nodemask->maskp, nodemask->size + 1,
-					MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
+			WRAP(mbind)(addr, len, MPOL_BIND, nodemask->maskp, nodemask->size + 1,
+					        MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
 }
 
 void force_uniform_interleave(char *addr, unsigned long len) {
@@ -40,10 +40,10 @@ void force_uniform_interleave(char *addr, unsigned long len) {
 		 addr, mbind_len, *(nodemasks[node_to_bind]->maskp),
 		 nodemasks[node_to_bind]->size + 1);*/
 		DIEIF(
-				mbind(addr, mbind_len, MPOL_BIND,
-						nodemasks[node_to_bind]->maskp,
-						nodemasks[node_to_bind]->size + 1,
-						MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
+				WRAP(mbind)(addr, mbind_len, MPOL_BIND,
+						        nodemasks[node_to_bind]->maskp,
+					        	nodemasks[node_to_bind]->size + 1,
+					        	MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
 		addr += mbind_len;
 		len -= mbind_len;
 		node_to_bind = (node_to_bind + 1) % num_nodes;
@@ -142,8 +142,8 @@ void place_pages(void *addr, unsigned long len, double r) {
 			"mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
 			local_addr, local_len);
 	DIEIF(
-			mbind(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
-			"mbind local failed");
+			WRAP(mbind)(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+			            "mbind local failed");
 }
 
 void place_pages(MemorySegment &segment, double ratio) {
