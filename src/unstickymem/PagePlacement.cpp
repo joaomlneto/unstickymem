@@ -5,7 +5,7 @@
 #include "unstickymem/unstickymem.h"
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/PagePlacement.hpp"
-#include "unstickymem/MemoryMap.hpp"
+#include "unstickymem/wrap.hpp"
 
 #include <math.h>
 
@@ -62,8 +62,8 @@ void place_on_node(char *addr, unsigned long len, int node) {
 	struct bitmask *nodemask = numa_bitmask_alloc(numa_num_configured_nodes());
 	numa_bitmask_setbit(nodemask, node);
 	DIEIF(
-			mbind(addr, len, MPOL_BIND, nodemask->maskp, nodemask->size + 1,
-					MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
+			WRAP(mbind)(addr, len, MPOL_BIND, nodemask->maskp, nodemask->size + 1,
+					        MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
 }
 
 void force_uniform_interleave(char *addr, unsigned long len) {
@@ -89,10 +89,10 @@ void force_uniform_interleave(char *addr, unsigned long len) {
 		 addr, mbind_len, *(nodemasks[node_to_bind]->maskp),
 		 nodemasks[node_to_bind]->size + 1);*/
 		DIEIF(
-				mbind(addr, mbind_len, MPOL_BIND,
-						nodemasks[node_to_bind]->maskp,
-						nodemasks[node_to_bind]->size + 1,
-						MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
+				WRAP(mbind)(addr, mbind_len, MPOL_BIND,
+						        nodemasks[node_to_bind]->maskp,
+					        	nodemasks[node_to_bind]->size + 1,
+					        	MPOL_MF_MOVE | MPOL_MF_STRICT) != 0, "mbind error");
 		addr += mbind_len;
 		len -= mbind_len;
 		node_to_bind = (node_to_bind + 1) % num_nodes;
@@ -331,22 +331,18 @@ void place_pages(void *addr, unsigned long len, double r) {
 			"mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
 			local_addr, local_len);
 	DIEIF(
-			mbind(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
-			"mbind local failed");
+			WRAP(mbind)(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+			            "mbind local failed");
 }
 
 void place_pages(MemorySegment &segment, double ratio) {
 	// LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
-	DIEIF(!segment.isBindable(), "trying to bind non-bindable segment!");
-	//place_pages(segment.startAddress(), segment.length(), ratio);
-	//place_pages_weighted(segment.startAddress(), segment.length(), ratio);
 	place_pages_weighted_s(segment.startAddress(), segment.length(), ratio);
 }
 
 void place_all_pages(MemoryMap &segments, double ratio) {
 	for (auto &segment : segments) {
-		if (segment.isBindable() && segment.isAnonymous()
-				&& segment.isWriteable() && segment.length() > 1ULL << 20) {
+		if (segment.length() > 1ULL << 20) {
 			place_pages(segment, ratio);
 		}
 	}
@@ -356,7 +352,7 @@ void place_all_pages(MemoryMap &segments, double ratio) {
 
 void place_all_pages(double ratio) {
 	LDEBUGF("place_pages with local ratio %lf", ratio);
-	MemoryMap segments;
+	MemoryMap &segments = MemoryMap::getInstance();
 	place_all_pages(segments, ratio);
 }
 

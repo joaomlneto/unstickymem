@@ -24,8 +24,9 @@ extern double sum_nww;
 
 int check_sum(RECORD nodes_info[MAX_NODES]);
 
-void unstickymem_start(void);
 void unstickymem_nop(void);
+void unstickymem_start(void);
+void unstickymem_print_memory(void);
 
 #ifdef __cplusplus
 }  // extern "C"
