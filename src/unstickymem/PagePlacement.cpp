@@ -4,6 +4,7 @@
 #include <iostream>
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/PagePlacement.hpp"
+#include "unstickymem/wrap.hpp"
 
 namespace unstickymem {
 
