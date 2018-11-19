@@ -1,11 +1,12 @@
 #ifndef UNSTICKYMEM_PAGE_PLACEMENT_HPP_
 #define UNSTICKYMEM_PAGE_PLACEMENT_HPP_
 
+#include <unistd.h>
 #include <numaif.h>
 #include <numa.h>
 
-#include "unstickymem/MemoryMap.hpp"
-#include "unstickymem/MemorySegment.hpp"
+#include "unstickymem/memory/MemoryMap.hpp"
+#include "unstickymem/memory/MemorySegment.hpp"
 
 #define PAGE_ALIGN_DOWN(x) (((intptr_t) (x)) & PAGE_MASK)
 #define PAGE_ALIGN_UP(x) ((((intptr_t) (x)) + ~PAGE_MASK) & PAGE_MASK)
@@ -20,6 +21,7 @@ static const int PAGE_MASK = (~(PAGE_SIZE - 1));
 #ifndef MPOL_LOCAL
 #define MPOL_LOCAL 4
 #endif
+
 
 void force_uniform_interleave(char *addr, unsigned long len);
 void force_uniform_interleave(MemorySegment &segment);

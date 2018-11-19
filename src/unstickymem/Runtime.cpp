@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+
+#include <sys/mman.h>
+
+>>>>>>> wrapper
 #include <algorithm>
 #include <iostream>
 
@@ -10,6 +16,18 @@
 #include "unstickymem/Logger.hpp"
 
 namespace unstickymem {
+
+Runtime& Runtime::getInstance(void) {
+  static Runtime *object = nullptr;
+  if (!object) {
+    LDEBUG("Creating Runtime singleton object");
+    void *buf = WRAP(mmap)(nullptr, sizeof(Runtime), PROT_READ | PROT_WRITE,
+                           MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    DIEIF(buf == MAP_FAILED, "error allocating space for runtime object");
+    object = new(buf) Runtime();
+  }
+  return *object;
+}
 
 Runtime::Runtime() {
   loadConfiguration();
@@ -38,7 +56,7 @@ void Runtime::loadConfiguration() {
     )
     (
       "UNSTICKYMEM_AUTOSTART",
-      po::value<bool>(&_autostart)->default_value(false),
+      po::value<bool>(&_autostart)->default_value(true),
       "Run the algorithm automatically at startup"
     )
     (

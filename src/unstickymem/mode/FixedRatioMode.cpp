@@ -12,7 +12,7 @@
 
 #include "unstickymem/PerformanceCounters.hpp"
 #include "unstickymem/PagePlacement.hpp"
-#include "unstickymem/MemoryMap.hpp"
+#include "unstickymem/memory/MemoryMap.hpp"
 #include "unstickymem/mode/FixedRatioMode.hpp"
 #include "unstickymem/Logger.hpp"
 
@@ -83,7 +83,6 @@ void FixedRatioMode::start() {
 
   // print stall_rate to a file for debugging!
   unstickymem_log(stall_rate, _local_ratio);
-  pthread_exit(0);
 }
 
 }  // namespace unstickymem

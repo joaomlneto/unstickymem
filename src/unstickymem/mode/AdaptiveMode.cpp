@@ -11,9 +11,9 @@
 
 #include "unstickymem/PerformanceCounters.hpp"
 #include "unstickymem/PagePlacement.hpp"
-#include "unstickymem/MemoryMap.hpp"
-#include "unstickymem/mode/AdaptiveMode.hpp"
 #include "unstickymem/Logger.hpp"
+#include "unstickymem/memory/MemoryMap.hpp"
+#include "unstickymem/mode/AdaptiveMode.hpp"
 
 namespace unstickymem {
 
@@ -71,7 +71,7 @@ void AdaptiveMode::adaptiveThread() {
   DIEIF(sched_setaffinity(syscall(SYS_gettid), sizeof(mask), &mask) < 0,
         "could not set affinity for hw monitor thread");
 
-  get_stall_rate();
+  get_stall_rate_v2();
   sleep(_wait_start);
 
   // dump mapping information
