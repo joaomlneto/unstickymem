@@ -283,14 +283,14 @@ double get_stall_rate_v2() {
 	//double cycles = 0;
 	double stalls = 0;
 	j = 0;
-	char* ptr = NULL;
+	// char* ptr = NULL;
 	//Results depending on the architecture!
 	if (info->isIntel == 1) {
 		//ptr = strtok(intel_estr, ",");
-		ptr = intel_estr;
+		// ptr = intel_estr;
 	} else if (info->isIntel == 0) {
 		//ptr = strtok(amd_estr, ",");
-		ptr = amd_estr;
+		// ptr = amd_estr;
 	} else {
 		printf(
 				"Error: Something went wrong, can't get the measurements at the moment!\n");
