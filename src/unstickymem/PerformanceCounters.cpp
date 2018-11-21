@@ -128,64 +128,9 @@ double get_stall_rate_v2() {
 		if (!cpus)
 			exit(-1);		//return 1;
 
-		/*for (i = 0; i < topo->numHWThreads; i++) {
-		 cpus[i] = topo->threadPool[i].apicId;
-		 }*/
-
-		/*
-		 * Get the cpus of the worker nodes
-		 * num_workers=1 use node 0
-		 * num_workers=2 use node 0, 1
-		 * num_workers=3 use node 1,2,3
-		 * num_workers=4 use node 0,1,2,3,4
-		 *
-		 */
-		/*j = 0;
-		 for (i = 0; i < ncpus; i++) {
-
-		 switch (OPT_NUM_WORKERS_VALUE) {
-		 case 1:
-		 if (numa_node_of_cpu(i) == 0) {
-		 cpus[j] = i;
-		 j++;
-		 //printf("NUM_WORKER: %d cpu: %d\n", NUM_WORKERS, i);
-		 }
-		 break;
-		 case 2:
-		 if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1) {
-		 cpus[j] = i;
-		 j++;
-		 }
-		 break;
-		 case 3:
-		 if (numa_node_of_cpu(i) == 1 || numa_node_of_cpu(i) == 2
-		 || numa_node_of_cpu(i) == 3) {
-		 cpus[j] = i;
-		 j++;
-		 }
-		 break;
-		 case 4:
-		 if (numa_node_of_cpu(i) == 0 || numa_node_of_cpu(i) == 1
-		 || numa_node_of_cpu(i) == 2
-		 || numa_node_of_cpu(i) == 3) {
-		 cpus[j] = i;
-		 j++;
-		 }
-		 break;
-		 default:
-		 printf(
-		 "Sorry, %d Worker nodes is not supported at the moment!\n",
-		 OPT_NUM_WORKERS_VALUE);
-		 exit(-1);
-		 }
-		 }*/
-
-		//printf("Worker/Monitored CPUs: ");
 		for (i = 0; i < active_cpus; i++) {
-			//printf("%d ", cpus[i]);
 			cpus[i] = topo->threadPool[i].apicId;
 		}
-		//printf("\n");
 
 		// Must be called before perfmon_init() but only if you want to use another
 		// access mode as the pre-configured one. For direct access (0) you have to
@@ -249,6 +194,7 @@ double get_stall_rate_v2() {
 			//return 1;
 			exit(-1);
 		}
+
 		// Start all counters in the previously set up event set.
 		err = perfmon_startCounters();
 		if (err < 0) {
@@ -275,8 +221,8 @@ double get_stall_rate_v2() {
 	}
 
 	// Read the result of every thread/CPU for all events in estr.
-	// For now just read/print for the active cores only
-	//double cycles = 0;
+	// For now just read/print for the active cores only, actually just one core at the moment!
+	// double cycles = 0;
 	double stalls = 0;
 	j = 0;
 	// char* ptr = NULL;
@@ -359,10 +305,10 @@ void stop_all_counters() {
 // checks performance counters and computes stalls per second since last call
 double get_stall_rate() {
 	const int pmc_num = 0x00000000; // program counter monitor number
-//static bool initialized = false;
+	//static bool initialized = false;
 	static uint64_t prev_clockcounts = 0;
 	static uint64_t prev_pmcounts = 0;
-// wait a bit to get a baseline first time function is called
+	// wait a bit to get a baseline first time function is called
 	/*if (!initialized) {
 	 prev_clockcounts = readtsc();
 	 prev_pmcounts = readpmc(pmc_num);
@@ -383,7 +329,7 @@ double get_average_stall_rate(size_t num_measurements,
 		useconds_t usec_between_measurements, size_t num_outliers_to_filter) {
 	std::vector<double> measurements(num_measurements);
 
-	// throw away a measurement, just because
+	//throw away a measurement, just because
 	//get_stall_rate();
 	get_stall_rate_v2();
 	usleep(usec_between_measurements);

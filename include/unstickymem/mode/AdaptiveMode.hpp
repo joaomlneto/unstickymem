@@ -5,29 +5,29 @@
 
 namespace unstickymem {
 
-class AdaptiveMode : public Mode {
- private:
-  unsigned int _wait_start;
-  unsigned int _num_polls;
-  unsigned int _num_poll_outliers;
-  useconds_t   _poll_sleep;
- public:
-  static std::string name() {
-    return "adaptive";
-  }
+class AdaptiveMode: public Mode {
+private:
+	unsigned int _wait_start;
+	unsigned int _num_polls;
+	unsigned int _num_poll_outliers;
+	useconds_t _poll_sleep;
+public:
+	static std::string name() {
+		return "adaptive";
+	}
 
-  static std::string description() {
-    return "Look for optimal local/remote page placement";
-  }
+	static std::string description() {
+		return "Look for optimal local/remote page placement";
+	}
 
-  static std::unique_ptr<Mode> createInstance() {
-    return std::make_unique<AdaptiveMode>();
-  }
+	static std::unique_ptr<Mode> createInstance() {
+		return std::make_unique<AdaptiveMode>();
+	}
 
-  po::options_description getOptions();
-  void printParameters();
-  void adaptiveThread();
-  void start();
+	po::options_description getOptions();
+	void printParameters();
+	void adaptiveThread();
+	void start();
 };
 
 }  // namespace unstickymem

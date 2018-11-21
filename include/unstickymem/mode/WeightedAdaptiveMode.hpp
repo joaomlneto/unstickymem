@@ -1,4 +1,3 @@
-
 #ifndef INCLUDE_UNSTICKYMEM_MODE_WEIGHTEDADAPTIVEMODE_HPP_
 #define INCLUDE_UNSTICKYMEM_MODE_WEIGHTEDADAPTIVEMODE_HPP_
 
@@ -8,29 +7,29 @@
 
 namespace unstickymem {
 
-class WeightedAdaptiveMode : public Mode {
- private:
-  unsigned int _wait_start;
-  unsigned int _num_polls;
-  unsigned int _num_poll_outliers;
-  useconds_t   _poll_sleep;
- public:
-  static std::string name() {
-    return "wadaptive";
-  }
+class WeightedAdaptiveMode: public Mode {
+private:
+	unsigned int _wait_start;
+	unsigned int _num_polls;
+	unsigned int _num_poll_outliers;
+	useconds_t _poll_sleep;
+public:
+	static std::string name() {
+		return "wadaptive";
+	}
 
-  static std::string description() {
-    return "Adaptive mode with weighted interleaving";
-  }
+	static std::string description() {
+		return "Adaptive mode with weighted interleaving";
+	}
 
-  static std::unique_ptr<Mode> createInstance() {
-    return std::make_unique<WeightedAdaptiveMode>();
-  }
+	static std::unique_ptr<Mode> createInstance() {
+		return std::make_unique<WeightedAdaptiveMode>();
+	}
 
-  po::options_description getOptions();
-  void printParameters();
-  void adaptiveThread();
-  void start();
+	po::options_description getOptions();
+	void printParameters();
+	void adaptiveThread();
+	void start();
 };
 
 }  // namespace unstickymem

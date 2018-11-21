@@ -22,7 +22,6 @@ static const int PAGE_MASK = (~(PAGE_SIZE - 1));
 #define MPOL_LOCAL 4
 #endif
 
-
 void force_uniform_interleave(char *addr, unsigned long len);
 void force_uniform_interleave(MemorySegment &segment);
 void place_pages(void *addr, unsigned long len, double ratio);

@@ -18,7 +18,7 @@ double get_average_stall_rate2(size_t num_measurements,
 		useconds_t usec_between_measurements, size_t num_outliers_to_filter);
 
 //output stall rate to a log file
-void unstickymem_log(double sr, double ratio);
+void unstickymem_log(double ratio, double sr);
 void unstickymem_log(double ratio);
 
 // read time stamp counter

@@ -7,30 +7,30 @@
 
 namespace unstickymem {
 
-class FixedRatioMode : public Mode {
- private:
-  double       _local_ratio;
-  unsigned int _num_polls;
-  unsigned int _num_poll_outliers;
-  useconds_t   _poll_sleep;
+class FixedRatioMode: public Mode {
+private:
+	double _local_ratio;
+	unsigned int _num_polls;
+	unsigned int _num_poll_outliers;
+	useconds_t _poll_sleep;
 
- public:
-  static std::string name() {
-    return "fixed";
-  }
+public:
+	static std::string name() {
+		return "fixed";
+	}
 
-  static std::string description() {
-    return "Places all pages with a predefined local_ratio";
-  }
+	static std::string description() {
+		return "Places all pages with a predefined local_ratio";
+	}
 
-  static std::unique_ptr<Mode> createInstance() {
-    return std::make_unique<FixedRatioMode>();
-  }
+	static std::unique_ptr<Mode> createInstance() {
+		return std::make_unique<FixedRatioMode>();
+	}
 
-  po::options_description getOptions();
-  void printParameters();
-  void pollerThread();
-  void start();
+	po::options_description getOptions();
+	void printParameters();
+	void pollerThread();
+	void start();
 };
 
 }  // namespace unstickymem
