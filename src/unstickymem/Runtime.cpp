@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 #include <boost/exception/diagnostic_information.hpp>
 
@@ -82,6 +83,8 @@ void Runtime::loadConfiguration() {
             [var](auto opt) {return var == opt->long_name();}) ? var : "";
       }),
       env);
+  std::ifstream ini_filename("unstickymem.ini");
+  po::store(po::parse_config_file(ini_filename, all_options, true), env);
   po::notify(env);
 
   // check if user wants help
