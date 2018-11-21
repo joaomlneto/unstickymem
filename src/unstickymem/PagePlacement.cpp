@@ -153,7 +153,7 @@ void place_pages_weighted(void *addr, unsigned long len, double r) {
     // only interleave if memory is in the region
     if (my_size != 0) {
       // LDEBUGF("mbind(%p, %lu, INTERLEAVE, %lx, %zu, MOVE|STRICT)",
-	       start, my_size, *(node_set->maskp), node_set->size + 1);
+	//       start, my_size, *(node_set->maskp), node_set->size + 1);
       DIEIF(
           WRAP(mbind)(start, my_size, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
           "mbind interleave failed");
