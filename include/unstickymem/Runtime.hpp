@@ -12,26 +12,26 @@ namespace po = boost::program_options;
 namespace unstickymem {
 
 class Runtime {
- private:
-  std::string           _mode_name;
-  std::shared_ptr<Mode> _mode;
-  bool                  _autostart;
+private:
+	std::string _mode_name;
+	std::shared_ptr<Mode> _mode;
+	bool _autostart;
 
- private:
-  Runtime();
+private:
+	Runtime();
 
- public:
-  //singleton
-  static Runtime& getInstance(void);
-  Runtime(Runtime const&) = delete;
-  void operator=(Runtime const&) = delete;
+public:
+	//singleton
+	static Runtime& getInstance(void);
+	Runtime(Runtime const&) = delete;
+	void operator=(Runtime const&) = delete;
 
-  po::options_description getOptions();
-  void loadConfiguration();
-  void printUsage();
-  void printConfiguration();
-  std::shared_ptr<Mode> getMode();
-  void startSelectedMode();
+	po::options_description getOptions();
+	void loadConfiguration();
+	void printUsage();
+	void printConfiguration();
+	std::shared_ptr<Mode> getMode();
+	void startSelectedMode();
 };
 
 }  // namespace unstickymem
