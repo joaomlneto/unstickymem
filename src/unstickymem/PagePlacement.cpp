@@ -350,7 +350,7 @@ void place_all_pages(MemoryMap &segments, double ratio) {
 			place_pages(segment, ratio);
 		}
 	}
-	print_node_allocations();
+	//print_node_allocations();
 	weight_initialized = 0;
 }
 

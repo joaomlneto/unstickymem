@@ -109,7 +109,7 @@ void get_sum_nww_ww(int num_workers) {
 
 	if (num_workers == 1) {
 		//workers: 0
-		char weights[] = "config/weights_1w.txt";
+		char weights[] = "/home/dgureya/devs/unstickymem/config/weights_1w.txt";
 		read_weights(weights);
 		//printf("Worker Nodes:\t");
 		LDEBUG("Worker Nodes: 0");
@@ -123,7 +123,7 @@ void get_sum_nww_ww(int num_workers) {
 		}
 	} else if (num_workers == 2) {
 		//workers: 0,1
-		char weights[] = "config/weights_2w.txt";
+		char weights[] = "/home/dgureya/devs/unstickymem/config/weights_2w.txt";
 		read_weights(weights);
 		//printf("Worker Nodes:\t");
 		LDEBUG("Worker Nodes: 0,1");
@@ -137,7 +137,7 @@ void get_sum_nww_ww(int num_workers) {
 		}
 	} else if (num_workers == 3) {
 		//workers: 1,2,3
-		char weights[] = "config/weights_3w.txt";
+		char weights[] = "/home/dgureya/devs/unstickymem/config/weights_3w.txt";
 		read_weights(weights);
 		//printf("Worker Nodes:\t");
 		LDEBUG("Worker Nodes: 1,2,3");
@@ -152,7 +152,7 @@ void get_sum_nww_ww(int num_workers) {
 		}
 	} else if (num_workers == 4) {
 		//workers: 0,1,2,3
-		char weights[] = "config/weights_4w.txt";
+		char weights[] = "/home/dgureya/devs/unstickymem/config/weights_4w.txt";
 		read_weights(weights);
 		//printf("Worker Nodes:\t");
 		LDEBUG("Worker Nodes: 0,1,2,3");
@@ -170,8 +170,6 @@ void get_sum_nww_ww(int num_workers) {
 				num_workers);
 		exit (EXIT_FAILURE);
 	}
-
-	printf("\n");
 
 	if ((int) round((sum_nww + sum_ww)) != 100) {
 		LDEBUGF(
@@ -221,7 +219,7 @@ void *hw_monitor_thread(void *arg) {
 					OPT_FIXED_RATIO_VALUE);
 			place_all_pages(OPT_FIXED_RATIO_VALUE);
 			unstickymem_log(OPT_FIXED_RATIO_VALUE);
-			//sleep(2);
+			sleep(1);
 			stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
 			NUM_POLL_OUTLIERS);
 			//fprintf(stderr, "measured stall rate: %lf\n",
@@ -229,7 +227,7 @@ void *hw_monitor_thread(void *arg) {
 			//		NUM_POLL_OUTLIERS));
 
 			//print stall_rate to a file for debugging!
-			unstickymem_log(stall_rate, OPT_FIXED_RATIO_VALUE);
+			unstickymem_log(OPT_FIXED_RATIO_VALUE, stall_rate);
 			pthread_exit(0);
 		}
 		exit(-1);
@@ -241,33 +239,30 @@ void *hw_monitor_thread(void *arg) {
 		LINFOF("Going to check a ratio of %d", i);
 		place_all_pages(segments, i);
 		sleep(1);
-		/*unstickymem_log(i);
-		 printf(
-		 "NUM_POLLS: %d\n===========================================================\n",
-		 NUM_POLLS);
-		 stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
-		 NUM_POLL_OUTLIERS);
-		 //print stall_rate to a file for debugging!
-		 unstickymem_log(stall_rate, i);
+		unstickymem_log(i);
+		stall_rate = get_average_stall_rate(NUM_POLLS, POLL_SLEEP,
+		NUM_POLL_OUTLIERS);
+		//print stall_rate to a file for debugging!
+		unstickymem_log(i, stall_rate);
 
-		 LINFOF("Ratio: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
-		 i, stall_rate, prev_stall_rate, best_stall_rate);
-		 std::string s = std::to_string(stall_rate);
-		 s.replace(s.find("."), std::string(".").length(), ",");
-		 fprintf(stderr, "%s\n", s.c_str());
-		 // compute the minimum rate
-		 best_stall_rate = std::min(best_stall_rate, stall_rate);
-		 // check if we are geting worse
-		 if (!OPT_SCAN && stall_rate > best_stall_rate * 1.001) {
-		 // just make sure that its not something transient...!
-		 LINFO("Hmm... Is this the best we can do?");
-		 if (get_average_stall_rate(NUM_POLLS * 2, POLL_SLEEP,
-		 NUM_POLL_OUTLIERS * 2)) {
-		 LINFO("I guess so!");
-		 break;
-		 }
-		 }
-		 prev_stall_rate = stall_rate;*/
+		LINFOF("Ratio: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
+				i, stall_rate, prev_stall_rate, best_stall_rate);
+		std::string s = std::to_string(stall_rate);
+		s.replace(s.find("."), std::string(".").length(), ",");
+		//fprintf(stderr, "%s\n", s.c_str());
+		// compute the minimum rate
+		best_stall_rate = std::min(best_stall_rate, stall_rate);
+		// check if we are geting worse
+		if (!OPT_SCAN && stall_rate > best_stall_rate * 1.001) {
+			// just make sure that its not something transient...!
+			LINFO("Hmm... Is this the best we can do?");
+			if (get_average_stall_rate(NUM_POLLS * 2, POLL_SLEEP,
+			NUM_POLL_OUTLIERS * 2)) {
+				LINFO("I guess so!");
+				break;
+			}
+		}
+		prev_stall_rate = stall_rate;
 
 	}
 

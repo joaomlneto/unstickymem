@@ -22,14 +22,14 @@ namespace unstickymem {
 static bool initiatialized = false;
 
 //output stall rate to a log file
-void unstickymem_log(double sr, double ratio) {
+void unstickymem_log(double ratio, double sr) {
 	FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt", "a");
 	if (f == NULL) {
 		printf("Error opening file!\n");
 		exit(-1);
 	}
 
-	fprintf(f, "%1.10lf %1.2lf\n", sr, ratio);
+	fprintf(f, "%1.2lf %1.10lf\n", ratio, sr);
 
 	fclose(f);
 	return;
@@ -95,7 +95,7 @@ double get_stall_rate_v2() {
 		//Load the topology module and print some values.
 		err = topology_init();
 		if (err < 0) {
-			printf("Failed to initialize LIKWID's topology module\n");
+			LDEBUG("Failed to initialize LIKWID's topology module\n");
 			//return 1;
 			exit(-1);
 		}
@@ -107,7 +107,7 @@ double get_stall_rate_v2() {
 		// Create affinity domains. Commonly only needed when reading Uncore counters
 		affinity_init();
 
-		printf("Likwid Measuremennts on a %s with %d CPUs\n", info->name,
+		LINFOF("Likwid Measuremennts on a %s with %d CPUs\n", info->name,
 				topo->numHWThreads);
 
 		ncpus = topo->numHWThreads;
@@ -117,14 +117,10 @@ double get_stall_rate_v2() {
 		//active_cpus = OPT_NUM_WORKERS_VALUE * ncpus_per_node;
 		active_cpus = 1;
 
-		printf(
-				"========================================================================================\n");
-		printf(
+		LINFOF(
 				"| [NODES] - %d: [CPUS] - %d: [CPUS_PER_NODE] - %d: [NUM_WORKERS] - %d: [ACTIVE_CPUS] - %d |\n",
 				nnodes, ncpus, ncpus_per_node, OPT_NUM_WORKERS_VALUE,
 				active_cpus);
-		printf(
-				"========================================================================================\n");
 
 		//cpus = (int*) malloc(topo->numHWThreads * sizeof(int));
 		//for now only monitor one CPU
@@ -184,12 +180,12 @@ double get_stall_rate_v2() {
 		 }
 		 }*/
 
-		printf("Worker/Monitored CPUs: ");
+		//printf("Worker/Monitored CPUs: ");
 		for (i = 0; i < active_cpus; i++) {
 			//printf("%d ", cpus[i]);
 			cpus[i] = topo->threadPool[i].apicId;
 		}
-		printf("\n");
+		//printf("\n");
 
 		// Must be called before perfmon_init() but only if you want to use another
 		// access mode as the pre-configured one. For direct access (0) you have to
@@ -199,7 +195,7 @@ double get_stall_rate_v2() {
 		//err = perfmon_init(topo->numHWThreads, cpus);
 		err = perfmon_init(active_cpus, cpus);
 		if (err < 0) {
-			printf(
+			LDEBUG(
 					"Failed to initialize LIKWID's performance monitoring module\n");
 			topology_finalize();
 			//return 1;
@@ -213,27 +209,27 @@ double get_stall_rate_v2() {
 		 * uses a simple flag to do this, may use the more accurate cpu names or families
 		 *
 		 */
-		printf("Short name of the CPU: %s\n", info->short_name);
-		printf("Intel flag: %d\n", info->isIntel);
-		printf("CPU family ID: %" PRIu32 "\n", info->family);
+		LINFOF("Short name of the CPU: %s\n", info->short_name);
+		LINFOF("Intel flag: %d\n", info->isIntel);
+		LINFOF("CPU family ID: %" PRIu32 "\n", info->family);
 		// Add eventset string to the perfmon module.
 		//Intel CPU's
 		if (info->isIntel == 1) {
-			printf("Setting up events %s for %s\n", intel_estr,
+			LINFOF("Setting up events %s for %s\n", intel_estr,
 					info->short_name);
 			gid = perfmon_addEventSet(intel_estr);
 		}
 		//for AMD!
 		else if (info->isIntel == 0) {
-			printf("Setting up events %s for %s\n", amd_estr, info->short_name);
+			LINFOF("Setting up events %s for %s\n", amd_estr, info->short_name);
 			gid = perfmon_addEventSet(amd_estr);
 		} else {
-			printf("Unsupported Architecture at the moment\n");
+			LINFO("Unsupported Architecture at the moment\n");
 			exit(-1);
 		}
 
 		if (gid < 0) {
-			printf(
+			LDEBUGF(
 					"Failed to add event string %s to LIKWID's performance monitoring module\n",
 					intel_estr);
 			perfmon_finalize();
@@ -245,7 +241,7 @@ double get_stall_rate_v2() {
 		// Setup the eventset identified by group ID (gid).
 		err = perfmon_setupCounters(gid);
 		if (err < 0) {
-			printf(
+			LDEBUGF(
 					"Failed to setup group %d in LIKWID's performance monitoring module\n",
 					gid);
 			perfmon_finalize();
@@ -256,8 +252,8 @@ double get_stall_rate_v2() {
 		// Start all counters in the previously set up event set.
 		err = perfmon_startCounters();
 		if (err < 0) {
-			printf("Failed to start counters for group %d for thread %d\n", gid,
-					(-1 * err) - 1);
+			LDEBUGF("Failed to start counters for group %d for thread %d\n",
+					gid, (-1 * err) - 1);
 			perfmon_finalize();
 			topology_finalize();
 			exit(-1);
@@ -270,7 +266,7 @@ double get_stall_rate_v2() {
 	// Stop all counters in the previously started event set before doing a read.
 	err = perfmon_stopCounters();
 	if (err < 0) {
-		printf("Failed to stop counters for group %d for thread %d\n", gid,
+		LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
 				(-1 * err) - 1);
 		perfmon_finalize();
 		topology_finalize();
@@ -292,7 +288,7 @@ double get_stall_rate_v2() {
 		//ptr = strtok(amd_estr, ",");
 		ptr = amd_estr;
 	} else {
-		printf(
+		LDEBUG(
 				"Error: Something went wrong, can't get the measurements at the moment!\n");
 		exit(-1);
 	}
@@ -329,7 +325,7 @@ double get_stall_rate_v2() {
 
 	err = perfmon_startCounters();
 	if (err < 0) {
-		printf("Failed to start counters for group %d for thread %d\n", gid,
+		LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
 				(-1 * err) - 1);
 		perfmon_finalize();
 		topology_finalize();
@@ -344,7 +340,7 @@ double get_stall_rate_v2() {
 void stop_all_counters() {
 	err = perfmon_stopCounters();
 	if (err < 0) {
-		printf("Failed to stop counters for group %d for thread %d\n", gid,
+		LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
 				(-1 * err) - 1);
 		perfmon_finalize();
 		topology_finalize();
@@ -357,7 +353,7 @@ void stop_all_counters() {
 	affinity_finalize();
 	// Uninitialize the topology module.
 	topology_finalize();
-	printf("All counters have been stopped\n");
+	LINFO("All counters have been stopped\n");
 }
 
 // checks performance counters and computes stalls per second since last call
@@ -396,7 +392,6 @@ double get_average_stall_rate(size_t num_measurements,
 	for (size_t i = 0; i < num_measurements; i++) {
 		//measurements[i] = get_stall_rate();
 		measurements[i] = get_stall_rate_v2();
-		unstickymem_log(measurements[i], i);
 		//unstickymem_log(measurements[i], i);
 		usleep(usec_between_measurements);
 	}
@@ -412,6 +407,12 @@ double get_average_stall_rate(size_t num_measurements,
 			measurements.end());
 	measurements.erase(measurements.begin(),
 			measurements.begin() + num_outliers_to_filter);
+
+	int i = 0;
+	for (auto m : measurements) {
+		unstickymem_log(i, m);
+		i++;
+	}
 
 	// return the average
 	double sum = std::accumulate(measurements.begin(), measurements.end(), 0.0);
