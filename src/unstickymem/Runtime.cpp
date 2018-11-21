@@ -35,6 +35,7 @@ Runtime::Runtime() {
 }
 
 void Runtime::loadConfiguration() {
+  std::ifstream ini_filename("unstickymem.ini");
   bool option_help;
   std::string option_loglevel;
 
@@ -63,6 +64,7 @@ void Runtime::loadConfiguration() {
             [var](auto opt) {return var == opt->long_name();}) ? var : "";
       }),
       lib_env);
+  po::store(po::parse_config_file(ini_filename, lib_options, true), lib_env);
   po::notify(lib_env);
 
   // get options of selected mode
@@ -83,7 +85,6 @@ void Runtime::loadConfiguration() {
             [var](auto opt) {return var == opt->long_name();}) ? var : "";
       }),
       env);
-  std::ifstream ini_filename("unstickymem.ini");
   po::store(po::parse_config_file(ini_filename, all_options, true), env);
   po::notify(env);
 
