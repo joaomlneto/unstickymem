@@ -62,7 +62,7 @@ void WeightedAdaptiveMode::adaptiveThread() {
 
   // dump mapping information
   MemoryMap &segments = MemoryMap::getInstance();
-  // segments.print();
+  segments.print();
 
   //set sum_ww & sum_nww & initialize the weights!
   get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);

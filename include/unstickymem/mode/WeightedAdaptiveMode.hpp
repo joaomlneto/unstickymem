@@ -30,6 +30,7 @@ class WeightedAdaptiveMode : public Mode {
   void printParameters();
   void adaptiveThread();
   void start();
+  void processSegmentAddition(const MemorySegment& segment);
 };
 
 }  // namespace unstickymem

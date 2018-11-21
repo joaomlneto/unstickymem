@@ -128,7 +128,7 @@ void place_pages_weighted(void *addr, unsigned long len, double r) {
 
   size_t remaining_a;
 
-  for (i = 0; i <= MAX_NODES; ++i) {
+  for (i = 0; i < MAX_NODES; ++i) {
     if (total_size == size) {
       break;
     }
