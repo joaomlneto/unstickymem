@@ -85,6 +85,9 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
 
 // library destructor
 __attribute((destructor)) void libunstickymem_finalize(void) {
+  // cleanup shared memory object
+  boost::interprocess::shared_memory_object::remove("unstickymem");
+
   // stop all the counters
   stop_all_counters();
   LINFO("Finalized");
