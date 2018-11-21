@@ -324,4 +324,29 @@ void place_pages(void *addr, unsigned long len, double r) {
     "mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
     local_addr, local_len);
   DIEIF(
-    WRAP(mbind)(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRIC
+    WRAP(mbind)(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+ 			            "mbind local failed");
+}
+
+void place_pages(MemorySegment &segment, double ratio) {
+  // LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
+ 	place_pages_weighted_s(segment.startAddress(), segment.length(), ratio);
+}
+
+void place_all_pages(MemoryMap &segments, double ratio) {
+  for (auto &segment : segments) {
+    if (segment.length() > 1ULL << 20) {
+      place_pages(segment, ratio);
+    }
+  }
+  print_node_allocations();
+  weight_initialized = 0;
+}
+
+void place_all_pages(double ratio) {
+  LDEBUGF("place_pages with local ratio %lf", ratio);
+  MemoryMap &segments = MemoryMap::getInstance();
+  place_all_pages(segments, ratio);
+}
+
+}  // namespace unstickymem
