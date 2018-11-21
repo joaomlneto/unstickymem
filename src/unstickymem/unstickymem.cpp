@@ -58,6 +58,9 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
   // initialize pointers to wrapped functions
   unstickymem::init_real_functions();
 
+  // initialize likwid
+  initialize_likwid();
+
   // parse and display the configuration
   read_config();
   print_config();

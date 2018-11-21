@@ -5,6 +5,8 @@
 
 namespace unstickymem {
 
+void initialize_likwid();
+
 // checks performance counters and computes stalls per second since last call
 double get_stall_rate();  // via joao barreto's lib
 

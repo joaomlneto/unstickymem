@@ -74,14 +74,6 @@ static int ncpus_per_node;
 static int ncpus;
 static int active_cpus;
 
-double get_stall_rate_v2() {
-  int i, j;
-  double result = 0.0;
-
-  //static double prev_cycles = 0;
-  static double prev_stalls = 0;
-  static uint64_t prev_clockcounts = 0;
-
   //list of all the events for the different architectures supported
   //char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
   char amd_estr[] = "DISPATCH_STALLS:PMC0";  //AMD DISPATCH_STALL_LDQ_FULL,DISPATCH_STALL_FP_SCHED_Q_FULL
@@ -90,6 +82,8 @@ double get_stall_rate_v2() {
   //		"CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
   char intel_estr[] = "RESOURCE_STALLS_ANY:PMC0";  //Intel Broadwell EP
 
+
+void initialize_likwid() {
   if (!initiatialized) {
     //perfmon_setVerbosity(3);
     //Load the topology module and print some values.
@@ -127,7 +121,7 @@ double get_stall_rate_v2() {
     if (!cpus)
       exit(-1);		//return 1;
 
-    for (i = 0; i < active_cpus; i++) {
+    for (int i = 0; i < active_cpus; i++) {
       cpus[i] = topo->threadPool[i].apicId;
     }
 
@@ -205,6 +199,16 @@ double get_stall_rate_v2() {
     initiatialized = true;
     //printf("Setting up Likwid statistics for the first time\n");
   }
+
+}
+
+double get_stall_rate_v2() {
+  int i, j;
+  double result = 0.0;
+
+  //static double prev_cycles = 0;
+  static double prev_stalls = 0;
+  static uint64_t prev_clockcounts = 0;
 
   // Stop all counters in the previously started event set before doing a read.
   err = perfmon_stopCounters();

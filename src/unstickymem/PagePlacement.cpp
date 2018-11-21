@@ -152,6 +152,8 @@ void place_pages_weighted(void *addr, unsigned long len, double r) {
 
     // only interleave if memory is in the region
     if (my_size != 0) {
+      // LDEBUGF("mbind(%p, %lu, INTERLEAVE, %lx, %zu, MOVE|STRICT)",
+	       start, my_size, *(node_set->maskp), node_set->size + 1);
       DIEIF(
           WRAP(mbind)(start, my_size, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
           "mbind interleave failed");
@@ -328,7 +330,8 @@ void place_pages(void *addr, unsigned long len, double r) {
 
 void place_pages(MemorySegment &segment, double ratio) {
   // LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
-  place_pages_weighted_s(segment.startAddress(), segment.length(), ratio);
+  // segment.print();
+  place_pages_weighted_s(segment.pageAlignedStartAddress(), segment.pageAlignedLength(), ratio);
 }
 
 void place_all_pages(MemoryMap &segments, double ratio) {

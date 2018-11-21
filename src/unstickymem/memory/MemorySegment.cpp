@@ -72,13 +72,13 @@ void* MemorySegment::pageAlignedEndAddress() const {
 }
 
 size_t MemorySegment::length() const {
-  return reinterpret_cast<intptr_t>(_endAddress)
-      - reinterpret_cast<intptr_t>(_startAddress) + 1;
+  return reinterpret_cast<intptr_t>(endAddress())
+      - reinterpret_cast<intptr_t>(startAddress()) + 1;
 }
 
 size_t MemorySegment::pageAlignedLength() const {
   return reinterpret_cast<intptr_t>(pageAlignedEndAddress())
-      - reinterpret_cast<intptr_t>(pageAlignedStartAddress()) + 1;
+      - reinterpret_cast<intptr_t>(pageAlignedStartAddress());
 }
 
 void MemorySegment::print() const {
