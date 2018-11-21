@@ -58,10 +58,27 @@
   std::cout << boost::stacktrace::stacktrace();\
   ::abort();
 
+#define DIEF(fmt, ...) \
+  printf("\n\n");\
+  L->printHorizontalRule("FATAL ERROR");\
+  LFATALF(fmt, ...);\
+  LFATALF("errno:   %s", strerror(errno));\
+  LFATALF("dlerror: %s", dlerror());\
+  perror("perror");\
+  std::cout << boost::stacktrace::stacktrace();\
+  ::abort();
+
 #define DIEIF(expr, msg) \
   do {\
     if (expr) {\
       DIE(msg);\
+    }\
+  } while (0)
+
+#define DIEIFF(expr, fmt, ...) \
+  do {\
+    if (expr) {\
+      DIEF(fmt, ...);\
     }\
   } while (0)
 

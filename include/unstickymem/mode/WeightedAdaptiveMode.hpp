@@ -1,5 +1,6 @@
-#ifndef UNSTICKYMEM_FIXEDRATIOMODE_HPP_
-#define UNSTICKYMEM_FIXEDRATIOMODE_HPP_
+
+#ifndef INCLUDE_UNSTICKYMEM_MODE_WEIGHTEDADAPTIVEMODE_HPP_
+#define INCLUDE_UNSTICKYMEM_MODE_WEIGHTEDADAPTIVEMODE_HPP_
 
 #include <string>
 
@@ -7,32 +8,31 @@
 
 namespace unstickymem {
 
-class FixedRatioMode : public Mode {
+class WeightedAdaptiveMode : public Mode {
  private:
-  double       _local_ratio;
+  unsigned int _wait_start;
   unsigned int _num_polls;
   unsigned int _num_poll_outliers;
   useconds_t   _poll_sleep;
-
  public:
   static std::string name() {
-    return "fixed";
+    return "wadaptive";
   }
 
   static std::string description() {
-    return "Places all pages with a predefined local_ratio";
+    return "Adaptive mode with weighted interleaving";
   }
 
   static std::unique_ptr<Mode> createInstance() {
-    return std::make_unique<FixedRatioMode>();
+    return std::make_unique<WeightedAdaptiveMode>();
   }
 
   po::options_description getOptions();
   void printParameters();
-  void pollerThread();
+  void adaptiveThread();
   void start();
 };
 
 }  // namespace unstickymem
 
-#endif  // UNSTICKYMEM_FIXEDRATIOMODE_HPP_
+#endif  // INCLUDE_UNSTICKYMEM_MODE_WEIGHTEDADAPTIVEMODE_HPP_

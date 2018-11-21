@@ -29,6 +29,9 @@ void place_pages(void *addr, unsigned long len, double ratio);
 void place_all_pages(MemoryMap &segments, double ratio);
 void place_all_pages(double ratio);
 
+void place_pages_weighted_s(void *addr, unsigned long len, double s);
+void place_pages_weighted(void *addr, unsigned long len, double r);
+
 }  // namespace unstickymem
 
 #endif  // UNSTICKYMEM_PAGE_PLACEMENT_HPP_

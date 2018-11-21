@@ -15,6 +15,7 @@ int main() {
   for(size_t i=1; i < NUM_ELEMS; i++) {
     x[i] = x[0] * x[0] % 1000000;
   }
+  sleep(10);
   free(x);
   return 0;
 }

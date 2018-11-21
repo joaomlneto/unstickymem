@@ -11,6 +11,7 @@
 #include <cassert>
 #include <algorithm>
 #include <numeric>
+#include <cmath>
 
 #include <boost/interprocess/shared_memory_object.hpp>
 
@@ -23,10 +24,193 @@
 #include "unstickymem/memory/MemoryMap.hpp"
 #include "unstickymem/mode/Mode.hpp"
 
+// The adaptation step
+#define ADAPTATION_STEP 10  // E.g. Move 10% of shared pages to the worker nodes
+// number of workers
 static bool OPT_NUM_WORKERS = false;
 int OPT_NUM_WORKERS_VALUE = 1;
 
+RECORD nodes_info[MAX_NODES];  // hold the nodes information ids and weights
+double sum_ww = 0;
+double sum_nww = 0;
+
 namespace unstickymem {
+
+void read_weights(char filename[]) {
+  FILE * fp;
+  char * line = NULL;
+  size_t len = 0;
+  ssize_t read;
+
+  const char s[2] = " ";
+  char *token;
+
+  int retcode;
+  // First sort the file if not sorted
+  char cmdbuf[256];
+  snprintf(cmdbuf, sizeof(cmdbuf), "sort -n -o %s %s", filename, filename);
+  retcode = system(cmdbuf);
+  if (retcode == -1) {
+    printf("Unable to sort the weights!");
+    exit(EXIT_FAILURE);
+  }
+
+  int j = 0;
+
+  fp = fopen(filename, "r");
+  if (fp == NULL) {
+    printf("Weights have not been provided!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  while ((read = getline(&line, &len, fp)) != -1) {
+    char *strtok_saveptr;
+    // printf("Retrieved line of length %zu :\n", read);
+    // printf("%s", line);
+
+    // get the first token
+    token = strtok_r(line, s, &strtok_saveptr);
+    nodes_info[j].weight = atof(token);
+    // printf(" %s\n", token);
+
+    // get the second token
+    token = strtok_r(NULL, s, &strtok_saveptr);
+    nodes_info[j].id = atoi(token);
+    // printf(" %s\n", token);
+    j++;
+  }
+
+	/*int i;
+	 for (i = 0; i < MAX_NODES; i++) {
+	 printf("i: %d\tw: %.1f\tid: %d\n", i, nodes_info[i].weight,
+	 nodes_info[i].id);
+	 }*/
+
+  fclose(fp);
+  if (line)
+    free(line);
+
+  LINFO("weights initialized!");
+
+  return;
+}
+
+void get_sum_nww_ww(int num_workers) {
+  int i;
+
+  if (num_workers == 1) {
+    // workers: 0
+    char weights[] = "config/weights_1w.txt";
+    read_weights(weights);
+    // printf("Worker Nodes:\t");
+    LDEBUG("Worker Nodes: 0");
+    for (i = 0; i < MAX_NODES; i++) {
+      if (nodes_info[i].id == 0) {
+        // printf("nodes_info[%d].id=%d", i, nodes_info[i].id);
+        sum_ww += nodes_info[i].weight;
+      } else {
+        sum_nww += nodes_info[i].weight;
+      }
+    }
+  } else if (num_workers == 2) {
+    // workers: 0,1
+    char weights[] = "config/weights_2w.txt";
+    read_weights(weights);
+    // printf("Worker Nodes:\t");
+    LDEBUG("Worker Nodes: 0,1");
+    for (i = 0; i < MAX_NODES; i++) {
+      if (nodes_info[i].id == 0 || nodes_info[i].id == 1) {
+        // printf("nodes_info[%d].id=%d\t", i, nodes_info[i].id);
+        sum_ww += nodes_info[i].weight;
+      } else {
+        sum_nww += nodes_info[i].weight;
+      }
+    }
+  } else if (num_workers == 3) {
+    // workers: 1,2,3
+    char weights[] = "config/weights_3w.txt";
+    read_weights(weights);
+    // printf("Worker Nodes:\t");
+    LDEBUG("Worker Nodes: 1,2,3");
+    for (i = 0; i < MAX_NODES; i++) {
+      if (nodes_info[i].id == 1 || nodes_info[i].id == 2
+          || nodes_info[i].id == 3) {
+        // printf("nodes_info[%d].id=%d\t", i, nodes_info[i].id);
+        sum_ww += nodes_info[i].weight;
+      } else {
+        sum_nww += nodes_info[i].weight;
+      }
+    }
+  } else if (num_workers == 4) {
+    // workers: 0,1,2,3
+    char weights[] = "config/weights_4w.txt";
+    read_weights(weights);
+    // printf("Worker Nodes:\t");
+    LDEBUG("Worker Nodes: 0,1,2,3");
+    for (i = 0; i < MAX_NODES; i++) {
+      if (nodes_info[i].id == 0 || nodes_info[i].id == 1
+          || nodes_info[i].id == 2 || nodes_info[i].id == 3) {
+        // printf("nodes_info[%d].id=%d\t", i, nodes_info[i].id);
+        sum_ww += nodes_info[i].weight;
+      } else {
+        sum_nww += nodes_info[i].weight;
+      }
+    }
+  } else {
+    LDEBUGF("Sorry, %d workers is not supported at the moment!", num_workers);
+    exit(EXIT_FAILURE);
+  }
+
+  printf("\n");
+
+  if (std::lround(sum_nww + sum_ww) != 100) {
+    LDEBUGF(
+        "Sum of WW and NWW must be equal to 100! WW=%.2f\tNWW=%.2f\tSUM=%.2f\n",
+        sum_ww, sum_nww, sum_nww + sum_ww);
+    exit(-1);
+  } else {
+    LDEBUGF("WW = %.2f\tNWW = %.2f\n", sum_ww, sum_nww);
+  }
+
+  return;
+}
+
+// /**
+//  * Thread that monitors hardware counters in a given core
+//  */
+// void *hw_monitor_thread(void *arg) {
+//   // start with everything interleaved
+//   double local_ratio = 1.0 / numa_num_configured_nodes();
+//   double prev_stall_rate = std::numeric_limits<double>::infinity();
+//   double best_stall_rate = std::numeric_limits<double>::infinity();
+//   double stall_rate;
+//   sleep(WAIT_START);
+//
+//   // dump mapping information
+//   MemoryMap segments;
+//   segments.print();
+//
+//   // set sum_ww & sum_nww & initialize the weights!
+//   get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);
+//
+//   // slowly achieve awesomeness - asymmetric weights version!
+//   for (int i = 0; i <= sum_nww; i += ADAPTATION_STEP) {
+//     LINFOF("Going to check a ratio of %d", i);
+//     place_all_pages(segments, i);
+//     sleep(1);
+//   }
+//
+//   LINFO("My work here is done! Enjoy the speedup");
+//   LINFOF("Ratio: %1.2lf", local_ratio);
+//   LINFOF("Stall Rate: %1.10lf", stall_rate);
+//   LINFOF("Best Measured Stall Rate: %1.10lf", best_stall_rate);
+//
+//   if (OPT_SCAN)
+//     exit(0);
+//
+//   return NULL;
+// }
+
 
 static bool is_initialized = false;
 Runtime *runtime;
@@ -88,13 +272,22 @@ __attribute((destructor)) void libunstickymem_finalize(void) {
 extern "C" {
 #endif
 
-// Public API
+int check_sum(RECORD n_i[MAX_NODES]) {
+  double sum = 0;
+  int i = 0;
+
+  for (i = 0; i < MAX_NODES; i++) {
+    sum += n_i[i].weight;
+  }
+  return std::lround(sum);
+}
 
 void unstickymem_nop(void) {
   LDEBUG("unstickymem NO-OP!");
 }
 
 void unstickymem_start(void) {
+  LDEBUG("Starting the unstickymem thread!");
   unstickymem::runtime->startSelectedMode();
 }
 

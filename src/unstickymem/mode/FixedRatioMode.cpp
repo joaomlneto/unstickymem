@@ -6,6 +6,7 @@
 #include <numa.h>
 #include <numaif.h>
 
+#include <thread>
 #include <iostream>
 
 #include <boost/program_options.hpp>
@@ -46,23 +47,29 @@ po::options_description FixedRatioMode::getOptions() {
       po::value<useconds_t>(&_poll_sleep)->default_value(200000),
       "Time (in microseconds) between measurements"
     )
-    (
-      "UNSTICKYMEM_EXIT_WHEN_FINISHED",
-      po::value<bool>(&_exit_when_finished)->default_value(false),
-      "Time (in microseconds) between measurements"
-    )
   ;
   return mode_options;
 }
 
 void FixedRatioMode::printParameters() {
   LINFOF("UNSTICKYMEM_LOCAL_RATIO:        %lf", _local_ratio);
-  LINFOF("UNSTICKYMEM_WAIT_START:         %lu", _wait_start);
   LINFOF("UNSTICKYMEM_NUM_POLLS:          %lu", _num_polls);
   LINFOF("UNSTICKYMEM_NUM_POLL_OUTLIERS:  %lu", _num_poll_outliers);
   LINFOF("UNSTICKYMEM_POLL_SLEEP:         %lu", _poll_sleep);
-  LINFOF("UNSTICKYMEM_EXIT_WHEN_FINISHED: %s",
-         _exit_when_finished ? "Yes" : "No");
+}
+
+void FixedRatioMode::pollerThread() {
+  while (true) {
+    // compute stall rate
+    double stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+                                               _num_poll_outliers);
+    LDEBUGF("measured stall rate: %lf",
+            get_average_stall_rate(_num_polls, _poll_sleep,
+                                   _num_poll_outliers));
+
+    // print stall_rate to a file for debugging!
+    unstickymem_log(stall_rate, _local_ratio);
+  }
 }
 
 void FixedRatioMode::start() {
@@ -75,14 +82,11 @@ void FixedRatioMode::start() {
   place_all_pages(_local_ratio);
   unstickymem_log(_local_ratio);
 
-  // compute stall rate
-  double stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-  _num_poll_outliers);
-  fprintf(stderr, "measured stall rate: %lf\n",
-          get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers));
+  // start poller thread
+  std::thread pollThread(&FixedRatioMode::pollerThread, this);
 
-  // print stall_rate to a file for debugging!
-  unstickymem_log(stall_rate, _local_ratio);
+  // dont wait for it to finish
+  pollThread.detach();
 }
 
 }  // namespace unstickymem
