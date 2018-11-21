@@ -6,23 +6,23 @@
 
 namespace unstickymem {
 
-class DisabledMode: public Mode {
-public:
-	static std::string name() {
-		return "disabled";
-	}
-	static std::string description() {
-		return "Do Nothing";
-	}
-	static std::unique_ptr<Mode> createInstance() {
-		return std::make_unique<DisabledMode>();
-	}
+class DisabledMode : public Mode {
+ public:
+  static std::string name() {
+    return "disabled";
+  }
+  static std::string description() {
+    return "Do Nothing";
+  }
+  static std::unique_ptr<Mode> createInstance() {
+    return std::make_unique<DisabledMode>();
+  }
 
-	po::options_description getOptions();
+  po::options_description getOptions();
 
-	void printParameters();
+  void printParameters();
 
-	void start();
+  void start();
 };
 
 }  // namespace unstickymem

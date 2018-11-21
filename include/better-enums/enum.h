@@ -262,59 +262,61 @@ namespace better_enums {
 
 template<typename T>
 BETTER_ENUMS_CONSTEXPR_ inline T _default() {
-	return static_cast<typename T::_enumerated>(0);
+  return static_cast<typename T::_enumerated>(0);
 }
 
 template<>
 BETTER_ENUMS_CONSTEXPR_ inline const char* _default<const char*>() {
-	return BETTER_ENUMS_NULLPTR;
+  return BETTER_ENUMS_NULLPTR;
 }
 
 template<>
 BETTER_ENUMS_CONSTEXPR_ inline std::size_t _default<std::size_t>() {
-	return 0;
+  return 0;
 }
 
 template<typename T>
 struct optional {
-	BETTER_ENUMS_CONSTEXPR_
-	optional() :
-			_valid(false), _value(_default<T>()) {
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  optional()
+      : _valid(false),
+        _value(_default<T>()) {
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	optional(T v) :
-			_valid(true), _value(v) {
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  optional(T v)
+      : _valid(true),
+        _value(v) {
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	const T& operator *() const {
-		return _value;
-	}
-	BETTER_ENUMS_CONSTEXPR_
-	const T* operator ->() const {
-		return &_value;
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  const T& operator *() const {
+    return _value;
+  }
+  BETTER_ENUMS_CONSTEXPR_
+  const T* operator ->() const {
+    return &_value;
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	operator bool() const {
-		return _valid;
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  operator bool() const {
+    return _valid;
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	const T& value() const {
-		return _value;
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  const T& value() const {
+    return _value;
+  }
 
-private:
-	bool _valid;
-	T _value;
+ private:
+  bool _valid;
+  T _value;
 };
 
 template<typename CastTo, typename Element>
-BETTER_ENUMS_CONSTEXPR_ static optional<CastTo> _map_index(const Element *array,
-		optional<std::size_t> index) {
-	return index ? static_cast<CastTo>(array[*index]) : optional<CastTo>();
+BETTER_ENUMS_CONSTEXPR_ static optional<CastTo> _map_index(
+    const Element *array, optional<std::size_t> index) {
+  return index ? static_cast<CastTo>(array[*index]) : optional<CastTo>();
 }
 
 #ifdef BETTER_ENUMS_VC2008_WORKAROUNDS
@@ -333,11 +335,11 @@ BETTER_ENUMS_CONSTEXPR_ static optional<CastTo> _map_index(const Element *array,
 #endif
 
 BETTER_ENUMS_IF_EXCEPTIONS(
-		template <typename T> BETTER_ENUMS_CONSTEXPR_ static T _or_throw(optional<T> maybe, const char *message) { BETTER_ENUMS_OR_THROW })
+    template <typename T> BETTER_ENUMS_CONSTEXPR_ static T _or_throw(optional<T> maybe, const char *message) { BETTER_ENUMS_OR_THROW })
 
 template<typename T>
 BETTER_ENUMS_CONSTEXPR_ static T* _or_null(optional<T*> maybe) {
-	return maybe ? *maybe : BETTER_ENUMS_NULLPTR;
+  return maybe ? *maybe : BETTER_ENUMS_NULLPTR;
 }
 
 // Functional sequencing. This is essentially a comma operator wrapped in a
@@ -347,63 +349,64 @@ BETTER_ENUMS_CONSTEXPR_ static T* _or_null(optional<T*> maybe) {
 
 template<typename T, typename U>
 BETTER_ENUMS_CONSTEXPR_ U continue_with(T, U value) {
-	return value;
+  return value;
 }
 
 // Values array declaration helper.
 
 template<typename EnumType>
 struct _eat_assign {
-	explicit BETTER_ENUMS_CONSTEXPR_ _eat_assign(EnumType value) :
-			_value(value) {
-	}
+  explicit BETTER_ENUMS_CONSTEXPR_ _eat_assign(EnumType value)
+      : _value(value) {
+  }
 
-	template<typename Any>
-	BETTER_ENUMS_CONSTEXPR_ const _eat_assign&
-	operator =(Any) const {
-		return *this;
-	}
+  template<typename Any>
+  BETTER_ENUMS_CONSTEXPR_ const _eat_assign&
+  operator =(Any) const {
+    return *this;
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	operator EnumType() const {
-		return _value;
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  operator EnumType() const {
+    return _value;
+  }
 
-private:
-	EnumType _value;
+ private:
+  EnumType _value;
 };
 
 // Iterables.
 
 template<typename Element>
 struct _Iterable {
-	typedef const Element* iterator;
+  typedef const Element* iterator;
 
-	BETTER_ENUMS_CONSTEXPR_
-	iterator begin() const {
-		return iterator(_array);
-	}
-	BETTER_ENUMS_CONSTEXPR_
-	iterator end() const {
-		return iterator(_array + _size);
-	}
-	BETTER_ENUMS_CONSTEXPR_
-	std::size_t size() const {
-		return _size;
-	}
-	BETTER_ENUMS_CONSTEXPR_
-	const Element& operator [](std::size_t index) const {
-		return _array[index];
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  iterator begin() const {
+    return iterator(_array);
+  }
+  BETTER_ENUMS_CONSTEXPR_
+  iterator end() const {
+    return iterator(_array + _size);
+  }
+  BETTER_ENUMS_CONSTEXPR_
+  std::size_t size() const {
+    return _size;
+  }
+  BETTER_ENUMS_CONSTEXPR_
+  const Element& operator [](std::size_t index) const {
+    return _array[index];
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	_Iterable(const Element *array, std::size_t s) :
-			_array(array), _size(s) {
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  _Iterable(const Element *array, std::size_t s)
+      : _array(array),
+        _size(s) {
+  }
 
-private:
-	const Element * const _array;
-	const std::size_t _size;
+ private:
+  const Element * const _array;
+  const std::size_t _size;
 };
 
 // String routines.
@@ -411,76 +414,78 @@ private:
 BETTER_ENUMS_CONSTEXPR_ static const char *_name_enders = "= \t\n";
 
 BETTER_ENUMS_CONSTEXPR_ inline bool _ends_name(char c, std::size_t index = 0) {
-	return c == _name_enders[index] ? true :
-			_name_enders[index] == '\0' ? false : _ends_name(c, index + 1);
+  return c == _name_enders[index] ? true :
+         _name_enders[index] == '\0' ? false : _ends_name(c, index + 1);
 }
 
 BETTER_ENUMS_CONSTEXPR_ inline bool _has_initializer(const char *s,
-		std::size_t index = 0) {
-	return s[index] == '\0' ? false :
-			s[index] == '=' ? true : _has_initializer(s, index + 1);
+                                                     std::size_t index = 0) {
+  return s[index] == '\0' ? false :
+         s[index] == '=' ? true : _has_initializer(s, index + 1);
 }
 
 BETTER_ENUMS_CONSTEXPR_ inline std::size_t _constant_length(const char *s,
-		std::size_t index = 0) {
-	return _ends_name(s[index]) ? index : _constant_length(s, index + 1);
+                                                            std::size_t index =
+                                                                0) {
+  return _ends_name(s[index]) ? index : _constant_length(s, index + 1);
 }
 
 BETTER_ENUMS_CONSTEXPR_ inline char _select(const char *from,
-		std::size_t from_length, std::size_t index) {
-	return index >= from_length ? '\0' : from[index];
+                                            std::size_t from_length,
+                                            std::size_t index) {
+  return index >= from_length ? '\0' : from[index];
 }
 
 BETTER_ENUMS_CONSTEXPR_ inline char _to_lower_ascii(char c) {
-	return c >= 0x41 && c <= 0x5A ? static_cast<char>(c + 0x20) : c;
+  return c >= 0x41 && c <= 0x5A ? static_cast<char>(c + 0x20) : c;
 }
 
 BETTER_ENUMS_CONSTEXPR_ inline bool _names_match(const char *stringizedName,
-		const char *referenceName, std::size_t index = 0) {
-	return _ends_name(stringizedName[index]) ? referenceName[index] == '\0' :
-			referenceName[index] == '\0' ? false :
-			stringizedName[index] != referenceName[index] ?
-					false :
-					_names_match(stringizedName, referenceName, index + 1);
+                                                 const char *referenceName,
+                                                 std::size_t index = 0) {
+  return
+      _ends_name(stringizedName[index]) ? referenceName[index] == '\0' :
+      referenceName[index] == '\0' ? false :
+      stringizedName[index] != referenceName[index] ?
+          false : _names_match(stringizedName, referenceName, index + 1);
 }
 
 BETTER_ENUMS_CONSTEXPR_ inline bool _names_match_nocase(
-		const char *stringizedName, const char *referenceName,
-		std::size_t index = 0) {
-	return _ends_name(stringizedName[index]) ? referenceName[index] == '\0' :
-			referenceName[index] == '\0' ? false :
-			_to_lower_ascii(stringizedName[index])
-					!= _to_lower_ascii(referenceName[index]) ?
-					false :
-					_names_match_nocase(stringizedName, referenceName,
-							index + 1);
+    const char *stringizedName, const char *referenceName,
+    std::size_t index = 0) {
+  return
+      _ends_name(stringizedName[index]) ? referenceName[index] == '\0' :
+      referenceName[index] == '\0' ? false :
+      _to_lower_ascii(stringizedName[index])
+          != _to_lower_ascii(referenceName[index]) ?
+          false : _names_match_nocase(stringizedName, referenceName, index + 1);
 }
 
 inline void _trim_names(const char * const *raw_names,
-		const char **trimmed_names, char *storage, std::size_t count) {
-	std::size_t offset = 0;
+                        const char **trimmed_names, char *storage,
+                        std::size_t count) {
+  std::size_t offset = 0;
 
-	for (std::size_t index = 0; index < count; ++index) {
-		trimmed_names[index] = storage + offset;
+  for (std::size_t index = 0; index < count; ++index) {
+    trimmed_names[index] = storage + offset;
 
-		std::size_t trimmed_length = std::strcspn(raw_names[index],
-				_name_enders);
-		storage[offset + trimmed_length] = '\0';
+    std::size_t trimmed_length = std::strcspn(raw_names[index], _name_enders);
+    storage[offset + trimmed_length] = '\0';
 
-		std::size_t raw_length = std::strlen(raw_names[index]);
-		offset += raw_length + 1;
-	}
+    std::size_t raw_length = std::strlen(raw_names[index]);
+    offset += raw_length + 1;
+  }
 }
 
 // Eager initialization.
 template<typename Enum>
 struct _initialize_at_program_start {
-	_initialize_at_program_start() {
-		Enum::initialize();
-	}
+  _initialize_at_program_start() {
+    Enum::initialize();
+  }
 };
 
-} // namespace better_enums
+}  // namespace better_enums
 
 // Array generation macros.
 
@@ -1100,84 +1105,82 @@ namespace better_enums {
 
 template<typename T>
 struct map_compare {
-	BETTER_ENUMS_CONSTEXPR_
-	static bool less(const T& a, const T& b) {
-		return a < b;
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  static bool less(const T& a, const T& b) {
+    return a < b;
+  }
 };
 
 template<>
 struct map_compare<const char*> {
-	BETTER_ENUMS_CONSTEXPR_
-	static bool less(const char *a, const char *b) {
-		return less_loop(a, b);
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  static bool less(const char *a, const char *b) {
+    return less_loop(a, b);
+  }
 
-private:
-	BETTER_ENUMS_CONSTEXPR_
-	static bool less_loop(const char *a, const char *b, size_t index = 0) {
-		return a[index] != b[index] ? a[index] < b[index] :
-				a[index] == '\0' ? false : less_loop(a, b, index + 1);
-	}
+ private:
+  BETTER_ENUMS_CONSTEXPR_
+  static bool less_loop(const char *a, const char *b, size_t index = 0) {
+    return a[index] != b[index] ? a[index] < b[index] :
+           a[index] == '\0' ? false : less_loop(a, b, index + 1);
+  }
 };
 
 // chenyao add
 template<>
 struct map_compare<const wchar_t*> {
-	BETTER_ENUMS_CONSTEXPR_
-	static bool less(const wchar_t *a, const wchar_t *b) {
-		return less_loop(a, b);
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  static bool less(const wchar_t *a, const wchar_t *b) {
+    return less_loop(a, b);
+  }
 
-private:
-	BETTER_ENUMS_CONSTEXPR_
-	static bool less_loop(const wchar_t *a, const wchar_t *b,
-			size_t index = 0) {
-		return a[index] != b[index] ? a[index] < b[index] :
-				a[index] == L'\0' ? false : less_loop(a, b, index + 1);
-	}
+ private:
+  BETTER_ENUMS_CONSTEXPR_
+  static bool less_loop(const wchar_t *a, const wchar_t *b, size_t index = 0) {
+    return a[index] != b[index] ? a[index] < b[index] :
+           a[index] == L'\0' ? false : less_loop(a, b, index + 1);
+  }
 };
 
 template<typename Enum, typename T, typename Compare = map_compare<T> >
 struct map {
-	typedef T (*function)(Enum);
+  typedef T (*function)(Enum);
 
-	BETTER_ENUMS_CONSTEXPR_
-	explicit map(function f) :
-			_f(f) {
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  explicit map(function f)
+      : _f(f) {
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	T from_enum(Enum value) const {
-		return _f(value);
-	}
-	BETTER_ENUMS_CONSTEXPR_
-	T operator [](Enum value) const {
-		return _f(value);
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  T from_enum(Enum value) const {
+    return _f(value);
+  }
+  BETTER_ENUMS_CONSTEXPR_
+  T operator [](Enum value) const {
+    return _f(value);
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	Enum to_enum(T value) const {
-		return _or_throw(to_enum_nothrow(value),
-				"map::to_enum: invalid argument");
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  Enum to_enum(T value) const {
+    return _or_throw(to_enum_nothrow(value), "map::to_enum: invalid argument");
+  }
 
-	BETTER_ENUMS_CONSTEXPR_
-	optional<Enum> to_enum_nothrow(T value, size_t index = 0) const {
-		return index >= Enum::_size() ? optional<Enum>() :
-				Compare::less(_f(Enum::_values()[index]), value)
-						|| Compare::less(value, _f(Enum::_values()[index])) ?
-						to_enum_nothrow(value, index + 1) :
-						Enum::_values()[index];
-	}
+  BETTER_ENUMS_CONSTEXPR_
+  optional<Enum> to_enum_nothrow(T value, size_t index = 0) const {
+    return
+        index >= Enum::_size() ? optional<Enum>() :
+        Compare::less(_f(Enum::_values()[index]), value)
+            || Compare::less(value, _f(Enum::_values()[index])) ?
+            to_enum_nothrow(value, index + 1) : Enum::_values()[index];
+  }
 
-private:
-	const function _f;
+ private:
+  const function _f;
 };
 
 template<typename Enum, typename T>
 BETTER_ENUMS_CONSTEXPR_ map<Enum, T> make_map(T (*f)(Enum)) {
-	return map<Enum, T>(f);
+  return map<Enum, T>(f);
 }
 
 }

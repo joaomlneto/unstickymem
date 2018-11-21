@@ -13,9 +13,9 @@ extern int OPT_NUM_WORKERS_VALUE;
 #define MAX_NODES 8
 // A structure to hold the nodes information
 typedef struct rec {
-	int id;
-	float weight;
-	int count;
+  int id;
+  float weight;
+  int count;
 } RECORD;
 
 // hold the nodes information ids and weights

@@ -26,7 +26,7 @@ extern int (*WRAP(brk))(void*);
 extern void* (*WRAP(sbrk))(intptr_t);
 
 extern long (*WRAP(mbind))(void*, unsigned long, int, const unsigned long*,
-		unsigned long, unsigned);
+                           unsigned long, unsigned);
 
 namespace unstickymem {
 
