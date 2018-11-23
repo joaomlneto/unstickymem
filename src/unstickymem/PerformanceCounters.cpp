@@ -20,32 +20,17 @@
 namespace unstickymem {
 
 static bool initiatialized = false;
+static FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt", "a");
 
 //output stall rate to a log file
 void unstickymem_log(double ratio, double sr) {
-  FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt", "a");
-  if (f == NULL) {
-    printf("Error opening file!\n");
-    exit(-1);
-  }
-
+  DIEIF(f == nullptr, "error opening file");
   fprintf(f, "%1.2lf %1.10lf\n", ratio, sr);
-
-  fclose(f);
-  return;
 }
 
 void unstickymem_log(double ratio) {
-  FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt", "a");
-  if (f == NULL) {
-    printf("Error opening file!\n");
-    exit(-1);
-  }
-
+  DIEIF(f == nullptr, "error opening file");
   fprintf(f, "Stall rates for %1.2lf\n", ratio);
-
-  fclose(f);
-  return;
 }
 
 /*
@@ -329,6 +314,7 @@ double get_stall_rate() {
 double get_average_stall_rate(size_t num_measurements,
                               useconds_t usec_between_measurements,
                               size_t num_outliers_to_filter) {
+  //return 0.0;
   std::vector<double> measurements(num_measurements);
 
   //throw away a measurement, just because
