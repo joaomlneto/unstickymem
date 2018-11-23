@@ -45,7 +45,7 @@ void Runtime::loadConfiguration() {
                             po::value<bool>(&option_help)->default_value(false),
                             "Prints library options")(
       "UNSTICKYMEM_MODE",
-      po::value < std::string > (&_mode_name)->default_value("adaptive"),
+      po::value < std::string > (&_mode_name)->default_value("wadaptive"),
       "The algorithm to be ran")(
       "UNSTICKYMEM_AUTOSTART",
       po::value<bool>(&_autostart)->default_value(false),
@@ -73,7 +73,7 @@ void Runtime::loadConfiguration() {
 
   // put all the options together
   po::options_description all_options("unstickymem options");
-  all_options.add(lib_options).add(mode_options);
+  all_options.add(mode_options);
 
   // parse all options (and ignore undeclared)
   po::variables_map env;
