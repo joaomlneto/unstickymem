@@ -15,20 +15,47 @@ static int pagesize;
 RECORD nodes_info_temp[MAX_NODES];
 int weight_initialized = 0;
 
+//for unstickymem_bitmask_alloc!
+/* How many bits in an unsigned long */
+#define bitsperlong (8 * sizeof(unsigned long))
+
+/* howmany(a,b) : how many elements of size b needed to hold all of a */
+#define howmany(x, y) (((x)+((y)-1))/(y))
+
+/* How many longs in mask of n bits */
+#define longsperbits(n) howmany(n, bitsperlong)
+
 namespace unstickymem {
 
-// size_t round_up(size_t my_size, int pagesize) {
-//   if (pagesize == 0)
-//     return my_size;
-//
-//   int remainder = my_size % pagesize;
-//   // int page_num = my_size / pagesize;
-//   if (remainder == 0)
-//     return my_size;
-//
-//   return my_size + pagesize - remainder;
-//   // return pagesize * page_num;
-// }
+/* A hack around numa_bit_mask_alloc!
+ * where n is the number of bits in the map */
+/* This function should not exit on failure, but right now we cannot really
+ recover from this. */
+
+/*struct bitmask *
+unstickymem_bitmask_alloc(unsigned int n) {
+  struct bitmask *bmp;
+
+  if (n < 1) {
+    errno = EINVAL;
+    numa_error("request to allocate mask for invalid number");
+    exit(1);
+  }
+  bmp = (bitmask *) WRAP(malloc)(sizeof(*bmp));
+  if (bmp == 0)
+    goto oom;
+  bmp->size = n;
+  bmp->maskp = (long unsigned int *) WRAP(calloc)(longsperbits(n),
+                                                  sizeof(unsigned long));
+  if (bmp->maskp == 0) {
+    free(bmp);
+    goto oom;
+  }
+  return bmp;
+
+  oom: numa_error("Out of memory allocating bitmask");
+  exit(1);
+}*/
 
 void print_command(char *cmd) {
   FILE *fp;
@@ -109,7 +136,8 @@ void force_uniform_interleave(MemorySegment &segment) {
 }
 
 // interleave pages using the weights
-void place_pages_weighted(void *addr, unsigned long len, double r) {
+void place_pages_weighted(void *addr, unsigned long len) {
+
   size_t size = len;
   void *start = addr;
   int i;
@@ -153,7 +181,7 @@ void place_pages_weighted(void *addr, unsigned long len, double r) {
     // only interleave if memory is in the region
     if (my_size != 0) {
       // LDEBUGF("mbind(%p, %lu, INTERLEAVE, %lx, %zu, MOVE|STRICT)",
-	//       start, my_size, *(node_set->maskp), node_set->size + 1);
+      //       start, my_size, *(node_set->maskp), node_set->size + 1);
       DIEIF(
           WRAP(mbind)(start, my_size, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
           "mbind interleave failed");
@@ -279,7 +307,7 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
   }
 
   // Enforce the new weights!
-  place_pages_weighted(addr, len, s);
+  place_pages_weighted(addr, len);
 }
 
 void place_pages(void *addr, unsigned long len, double r) {
@@ -331,8 +359,88 @@ void place_pages(void *addr, unsigned long len, double r) {
 void place_pages(MemorySegment &segment, double ratio) {
   // LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
   // segment.print();
-  place_pages_weighted_s(segment.pageAlignedStartAddress(), segment.pageAlignedLength(), ratio);
+  place_pages_weighted_s(segment.pageAlignedStartAddress(),
+                         segment.pageAlignedLength(), ratio);
 }
+
+/*
+ * The next two functions handle the initial page placement at the time
+ * of segment creation
+ * as a replacement for the uniform interleave policy
+ */
+void place_pages_weighted_initial(const MemorySegment &segment) {
+  if (segment.length() > 1ULL << 20) {
+    LINFOF("segment %s [%p:%p]", segment.name().c_str(), segment.startAddress(),
+           segment.endAddress());
+    segment.print();
+    place_pages_weighted_initial(segment.pageAlignedStartAddress(),
+                                 segment.pageAlignedLength());
+  }
+}
+
+// interleave pages using the weights - use the initial weights!
+void place_pages_weighted_initial(void *addr, unsigned long len) {
+  size_t size = len;
+  void *start = addr;
+  int i;
+  pagesize = numa_pagesize();
+  // printf("original size: %zu\n", size);
+
+  // nodes that can still receive pages
+  struct bitmask *node_set_initial = numa_bitmask_alloc(MAX_NODES);  // numa_allocate_nodemask();
+  numa_bitmask_setall(node_set_initial);
+
+  float w = 0;  // weight that has already been allocated among the nodes that can still receive pages
+  int a = MAX_NODES;  // number of nodes which can still receive pages
+
+  size_t total_size = 0;  // total size interleaved so far
+  size_t my_size = 0;
+
+  size_t remaining_a;
+
+  for (i = 0; i < MAX_NODES; ++i) {
+    if (total_size == size) {
+      break;
+    }
+
+    // b = size that remains to allocate in the next node with smallest beta
+    float b = nodes_info[i].weight - w;
+    // printf("i: %d\tb: %.2f\ta:%d\n", i, b, a);
+    // if (b != 0) {
+    my_size = a * (b / 100) * size;
+    // printf("my_size_a: %ld\n", my_size);
+
+    // round up to multiple of the page size
+    my_size = PAGE_ALIGN_UP(my_size);
+
+    remaining_a = size - total_size;
+    if (my_size > remaining_a) {
+      my_size = remaining_a;
+    }
+    // printf("my_size_b: %zu\n", my_size);
+    total_size += my_size;
+
+    // only interleave if memory is in the region
+    if (my_size != 0) {
+      // LDEBUGF("mbind(%p, %lu, INTERLEAVE, %lx, %zu, MOVE|STRICT)",
+      //       start, my_size, *(node_set->maskp), node_set->size + 1);
+      DIEIF(
+          WRAP(mbind)(start, my_size, MPOL_INTERLEAVE, node_set_initial->maskp, node_set_initial->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+          "mbind interleave failed");
+    }
+
+    start =
+        reinterpret_cast<void*>(reinterpret_cast<intptr_t>(start) + my_size);  // increment base to a new location
+    a--;  // one less node where to allocate pages
+    w = nodes_info[i].weight;  // we update the size already allocated in the remaining nodes
+    if (numa_bitmask_isbitset(node_set_initial, nodes_info[i].id)) {
+      numa_bitmask_clearbit(node_set_initial, nodes_info[i].id);  // remove node i from the set of remaining nodes
+    }
+  }
+
+  numa_bitmask_free(node_set_initial);
+}
+//end initial page placement functions!
 
 void place_all_pages(MemoryMap &segments, double ratio) {
   for (auto &segment : segments) {

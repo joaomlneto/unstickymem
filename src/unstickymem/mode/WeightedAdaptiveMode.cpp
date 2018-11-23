@@ -48,7 +48,10 @@ void WeightedAdaptiveMode::printParameters() {
 
 void WeightedAdaptiveMode::processSegmentAddition(
     const MemorySegment& segment) {
-
+  if (segment.length() > (1UL << 14)) {
+    // segment.print();
+    place_pages_weighted_initial(segment);
+  }
 }
 
 void WeightedAdaptiveMode::adaptiveThread() {
@@ -63,9 +66,6 @@ void WeightedAdaptiveMode::adaptiveThread() {
   // dump mapping information
   MemoryMap &segments = MemoryMap::getInstance();
   segments.print();
-
-  //set sum_ww & sum_nww & initialize the weights!
-  get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);
 
   // slowly achieve awesomeness - asymmetric weights version!
   int i;
