@@ -18,9 +18,10 @@ namespace unstickymem {
 MemoryMap::MemoryMap() {
   // create independent segment to store the MemoryMap
   LFATAL("going to create segment");
-  Manager *segment_manager = _segment.get_segment_manager();
+  /*Manager *segment_manager = _segment.get_segment_manager();
   _segments = _segment.construct < SegmentsList
-      > ("unstickymem")(segment_manager);
+      > ("unstickymem")(segment_manager);*/
+  _segments = new std::list<MemorySegment>();
 
   // open maps file
   FILE *maps = fopen("/proc/self/maps", "r");

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 
+#include <list>
 #include <iterator>
 #include <mutex>
 #include <string>
@@ -24,7 +25,7 @@ using Alloc = ipc::allocator<T, Manager>;
 template<typename K>
 using List = ipc::list<K, Alloc<K> >;
 
-typedef List<MemorySegment> SegmentsList;
+typedef std::list<MemorySegment> SegmentsList;
 
 class MemoryMap {
  private:
@@ -37,7 +38,7 @@ class MemoryMap {
 
   // FIXME(joaomlneto): this won't work if multiple unstickymem processes
   //                    are running!!!
-  Segment _segment { ipc::create_only, "unstickymem", 1ul << 40 };
+  //Segment _segment { ipc::create_only, "unstickymem", 1ul << 40 };
 
  private:
   MemoryMap();

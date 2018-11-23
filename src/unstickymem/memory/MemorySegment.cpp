@@ -85,7 +85,7 @@ void MemorySegment::print() const {
   char info[1024];
   snprintf(info, sizeof(info), "[%18p-%18p] (%8lu pages) %s", _startAddress,
            _endAddress, (length() + 1) / sysconf(_SC_PAGESIZE), _name.c_str());
-  L->printHorizontalRule(info, 7);
+  L->printHorizontalRule(info, 4);
 }
 
 bool MemorySegment::contains(void *addr) const {
