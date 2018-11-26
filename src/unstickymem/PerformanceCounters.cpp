@@ -20,7 +20,8 @@
 namespace unstickymem {
 
 static bool initiatialized = false;
-static FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt", "a");
+static FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt",
+                       "a");
 
 //output stall rate to a log file
 void unstickymem_log(double ratio, double sr) {
@@ -59,14 +60,13 @@ static int ncpus_per_node;
 static int ncpus;
 static int active_cpus;
 
-  //list of all the events for the different architectures supported
-  //char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
-  char amd_estr[] = "DISPATCH_STALLS:PMC0";  //AMD DISPATCH_STALL_LDQ_FULL,DISPATCH_STALL_FP_SCHED_Q_FULL
-  //char amd_estr[] = "DISPATCH_STALL_INSTRUCTION_RETIRED_Q_FULL:PMC0";
-  //char intel_estr[] =
-  //		"CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
-  char intel_estr[] = "RESOURCE_STALLS_ANY:PMC0";  //Intel Broadwell EP
-
+//list of all the events for the different architectures supported
+//char amd_estr[] = "CPU_CLOCKS_UNHALTED:PMC0,DISPATCH_STALLS:PMC1"; //AMD
+char amd_estr[] = "DISPATCH_STALLS:PMC0";  //AMD DISPATCH_STALL_LDQ_FULL,DISPATCH_STALL_FP_SCHED_Q_FULL
+//char amd_estr[] = "DISPATCH_STALL_INSTRUCTION_RETIRED_Q_FULL:PMC0";
+//char intel_estr[] =
+//		"CPU_CLOCK_UNHALTED_THREAD_P:PMC0,RESOURCE_STALLS_ANY:PMC1"; //Intel Broadwell EP
+char intel_estr[] = "RESOURCE_STALLS_ANY:PMC0";  //Intel Broadwell EP
 
 void initialize_likwid() {
   if (!initiatialized) {

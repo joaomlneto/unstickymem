@@ -15,47 +15,7 @@ static int pagesize;
 RECORD nodes_info_temp[MAX_NODES];
 int weight_initialized = 0;
 
-//for unstickymem_bitmask_alloc!
-/* How many bits in an unsigned long */
-#define bitsperlong (8 * sizeof(unsigned long))
-
-/* howmany(a,b) : how many elements of size b needed to hold all of a */
-#define howmany(x, y) (((x)+((y)-1))/(y))
-
-/* How many longs in mask of n bits */
-#define longsperbits(n) howmany(n, bitsperlong)
-
 namespace unstickymem {
-
-/* A hack around numa_bit_mask_alloc!
- * where n is the number of bits in the map */
-/* This function should not exit on failure, but right now we cannot really
- recover from this. */
-
-/*struct bitmask *
-unstickymem_bitmask_alloc(unsigned int n) {
-  struct bitmask *bmp;
-
-  if (n < 1) {
-    errno = EINVAL;
-    numa_error("request to allocate mask for invalid number");
-    exit(1);
-  }
-  bmp = (bitmask *) WRAP(malloc)(sizeof(*bmp));
-  if (bmp == 0)
-    goto oom;
-  bmp->size = n;
-  bmp->maskp = (long unsigned int *) WRAP(calloc)(longsperbits(n),
-                                                  sizeof(unsigned long));
-  if (bmp->maskp == 0) {
-    free(bmp);
-    goto oom;
-  }
-  return bmp;
-
-  oom: numa_error("Out of memory allocating bitmask");
-  exit(1);
-}*/
 
 void print_command(char *cmd) {
   FILE *fp;
