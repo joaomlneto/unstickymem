@@ -65,14 +65,15 @@ void WeightedAdaptiveMode::adaptiveThread() {
 
   // dump mapping information
   MemoryMap &segments = MemoryMap::getInstance();
-  segments.print();
+  //segments.print();
 
   // slowly achieve awesomeness - asymmetric weights version!
   int i;
-  for (i = 0; i <= sum_nww; i += ADAPTATION_STEP) {
+  for (i = 10; i <= sum_nww; i += ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
     place_all_pages(segments, i);
-    sleep(1);
+    usleep(200000);
+    //sleep(1);
     unstickymem_log(i);
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);

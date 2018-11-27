@@ -10,6 +10,7 @@
 #include <boost/program_options.hpp>
 
 #include "unstickymem/PerformanceCounters.hpp"
+#include "unstickymem/unstickymem.h"
 #include "unstickymem/PagePlacement.hpp"
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/memory/MemoryMap.hpp"
@@ -69,15 +70,16 @@ void AdaptiveMode::adaptiveThread() {
 
   // slowly achieve awesomeness
   for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5
-      * 5; local_percentage <= 100; local_percentage += 5) {
+      * 5; local_percentage <= 100; local_percentage += ADAPTATION_STEP) {
     local_ratio = ((double) local_percentage) / 100;
     LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
-    place_all_pages(segments, local_ratio);
+    place_all_pages_adaptive(segments, local_ratio);
+    usleep(200000);
     unstickymem_log(local_ratio);
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
     //print stall_rate to a file for debugging!
-    unstickymem_log(stall_rate, local_ratio);
+    unstickymem_log(local_ratio, stall_rate);
 
     LINFOF("Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
            local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
@@ -106,9 +108,9 @@ void AdaptiveMode::adaptiveThread() {
 
 void AdaptiveMode::start() {
   // interleave memory by default
-  /*LINFO("Setting default memory policy to interleaved");
-   set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
-   numa_get_mems_allowed()->size);*/
+  LINFO("Setting default memory policy to interleaved");
+  set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
+                numa_get_mems_allowed()->size);
 
   // start adaptive thread
   std::thread adaptiveThread(&AdaptiveMode::adaptiveThread, this);

@@ -168,7 +168,7 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
 
     new_s = sum_ww + s;
     // Calculate new weights
-    printf("NODE Weights: \t");
+    // printf("NODE Weights: \t");
     double sum = 0;
 
     for (i = 0; i < MAX_NODES; i++) {
@@ -179,13 +179,13 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           } else {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_nww * (100 - new_s)) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           }
           break;
@@ -195,13 +195,13 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           } else {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_nww * (100 - new_s)) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           }
           break;
@@ -212,13 +212,13 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           } else {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_nww * (100 - new_s)) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           }
           break;
@@ -229,13 +229,13 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_ww * new_s) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           } else {
             nodes_info_temp[i].id = nodes_info[i].id;
             nodes_info_temp[i].weight = round(
                 (nodes_info[i].weight / sum_nww * (100 - new_s)) * 10) / 10;
-            printf("%.2f\t", nodes_info_temp[i].weight);
+            //printf("%.2f\t", nodes_info_temp[i].weight);
             sum += nodes_info_temp[i].weight;
           }
           break;
@@ -247,13 +247,13 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
       }
     }
 
-    printf("%.2f\n", sum);
+    /* printf("%.2f\n", sum);
 
-    printf("NODE IDs: \t");
-    for (i = 0; i < MAX_NODES; i++) {
-      printf("%d\t", nodes_info_temp[i].id);
-    }
-    printf("\n");
+     printf("NODE IDs: \t");
+     for (i = 0; i < MAX_NODES; i++) {
+     printf("%d\t", nodes_info_temp[i].id);
+     }
+     printf("\n");*/
 
     if ((check_sum(nodes_info_temp)) != 100) {
       printf("**Sum of New weights must be equal to 100, sum=%d!**\n",
@@ -261,8 +261,8 @@ void place_pages_weighted_s(void *addr, unsigned long len, double s) {
       exit(-1);
     }
 
-    printf(
-        "===========================================================================\n");
+    /* printf(
+     "===========================================================================\n");*/
     weight_initialized = 1;
   }
 
@@ -323,6 +323,14 @@ void place_pages(MemorySegment &segment, double ratio) {
                          segment.pageAlignedLength(), ratio);
 }
 
+//place pages the adaptive way
+void place_pages_adaptive(MemorySegment &segment, double ratio) {
+  // LDEBUGF("segment %s [%p:%p] ratio: %lf", segment.name().c_str(), segment.startAddress(), segment.endAddress(), ratio);
+  // segment.print();
+  place_pages(segment.pageAlignedStartAddress(), segment.pageAlignedLength(),
+              ratio);
+}
+
 /*
  * The next two functions handle the initial page placement at the time
  * of segment creation
@@ -330,9 +338,9 @@ void place_pages(MemorySegment &segment, double ratio) {
  */
 void place_pages_weighted_initial(const MemorySegment &segment) {
   if (segment.length() > 1ULL << 20) {
-    LINFOF("segment %s [%p:%p]", segment.name().c_str(), segment.startAddress(),
-           segment.endAddress());
-    segment.print();
+    // LINFOF("segment %s [%p:%p]", segment.name().c_str(), segment.startAddress(),
+    //      segment.endAddress());
+    //segment.print();
     place_pages_weighted_initial(segment.pageAlignedStartAddress(),
                                  segment.pageAlignedLength());
   }
@@ -410,6 +418,21 @@ void place_all_pages(MemoryMap &segments, double ratio) {
   }
   //print_node_allocations();
   weight_initialized = 0;
+}
+
+//place pages the adaptive way!
+void place_all_pages_adaptive(MemoryMap &segments, double ratio) {
+  for (auto &segment : segments) {
+    if (segment.length() > 1ULL << 20) {
+      place_pages_adaptive(segment, ratio);
+    }
+  }
+}
+
+void place_all_pages_adaptive(double ratio) {
+  LDEBUGF("place_pages with local ratio %lf", ratio);
+  MemoryMap &segments = MemoryMap::getInstance();
+  place_all_pages_adaptive(segments, ratio);
 }
 
 void place_all_pages(double ratio) {

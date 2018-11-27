@@ -31,6 +31,7 @@ class FixedRatioMode : public Mode {
   void printParameters();
   void pollerThread();
   void start();
+  void processSegmentAddition(const MemorySegment& segment);
 };
 
 }  // namespace unstickymem

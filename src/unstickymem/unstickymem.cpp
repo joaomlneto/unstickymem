@@ -169,12 +169,12 @@ void read_weights(char filename[]) {
     j++;
   }
 
-  int i;
-  printf("Initial Weights:\t");
-  for (i = 0; i < MAX_NODES; i++) {
-    printf("id: %d w: %.1f\t", nodes_info[i].id, nodes_info[i].weight);
-  }
-  printf("\n");
+  /* int i;
+   printf("Initial Weights:\t");
+   for (i = 0; i < MAX_NODES; i++) {
+   printf("id: %d w: %.1f\t", nodes_info[i].id, nodes_info[i].weight);
+   }
+   printf("\n");*/
 
   fclose(fp);
   if (line)

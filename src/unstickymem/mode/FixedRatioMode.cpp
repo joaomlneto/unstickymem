@@ -49,37 +49,53 @@ void FixedRatioMode::printParameters() {
   LINFOF("UNSTICKYMEM_POLL_SLEEP:         %lu", _poll_sleep);
 }
 
+void FixedRatioMode::processSegmentAddition(const MemorySegment& segment) {
+  if (segment.length() > (1UL << 14)) {
+    // segment.print();
+    // place_pages_weighted_initial(segment);
+  }
+}
+
 void FixedRatioMode::pollerThread() {
   while (true) {
-    // compute stall rate
+    LINFOF("Fixed Ratio selected. Placing %lf in local node.", _local_ratio);
+    //place_all_pages(_local_ratio);
+    place_all_pages_adaptive(_local_ratio);
+    unstickymem_log(_local_ratio);
+    usleep(200000);
     double stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                                _num_poll_outliers);
-    LDEBUGF("measured stall rate: %lf",
-            get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers));
+    //print stall_rate to a file for debugging!
+    unstickymem_log(_local_ratio, stall_rate);
+    // compute stall rate
+    // double stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+    //                                           _num_poll_outliers);
+    // LDEBUGF("measured stall rate: %lf",
+    //      get_average_stall_rate(_num_polls, _poll_sleep, _num_poll_outliers));
 
     // print stall_rate to a file for debugging!
-    unstickymem_log(stall_rate, _local_ratio);
+    //unstickymem_log(stall_rate, _local_ratio);
+    pthread_exit(0);
   }
 }
 
 void FixedRatioMode::start() {
   // set default memory policy to interleaved
-  /*LDEBUG("Setting default memory policy to interleaved");
-   set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
-   numa_get_mems_allowed()->size);*/
+  LDEBUG("Setting default memory policy to interleaved");
+  set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
+                numa_get_mems_allowed()->size);
 
-  double stall_rate;
+  // double stall_rate;
   // set sum_ww & sum_nww & initialize the weights!
-  get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);
-  LINFOF("Fixed Ratio selected. Placing %lf in local node.", _local_ratio);
-  place_all_pages(_local_ratio);
-  unstickymem_log(_local_ratio);
-  sleep(1);
-  stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
-                                      _num_poll_outliers);
-  //print stall_rate to a file for debugging!
-  unstickymem_log(_local_ratio, stall_rate);
-
+  // get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);
+  // LINFOF("Fixed Ratio selected. Placing %lf in local node.", _local_ratio);
+  // place_all_pages(_local_ratio);
+  // unstickymem_log(_local_ratio);
+  // sleep(1);
+  // stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
+  //                                    _num_poll_outliers);
+  // print stall_rate to a file for debugging!
+  // unstickymem_log(_local_ratio, stall_rate);
   // start poller thread
   std::thread pollThread(&FixedRatioMode::pollerThread, this);
 
