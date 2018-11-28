@@ -108,9 +108,9 @@ void AdaptiveMode::adaptiveThread() {
 
 void AdaptiveMode::start() {
   // interleave memory by default
-  LINFO("Setting default memory policy to interleaved");
+  /*LINFO("Setting default memory policy to interleaved");
   set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
-                numa_get_mems_allowed()->size);
+                numa_get_mems_allowed()->size);*/
 
   // start adaptive thread
   std::thread adaptiveThread(&AdaptiveMode::adaptiveThread, this);

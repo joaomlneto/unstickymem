@@ -36,6 +36,7 @@ MemoryMap::MemoryMap() {
       // found the heap!
       _segments->emplace_back(s.startAddress(), s.endAddress(), "heap");
       _heap = &_segments->back();
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     } else if (s.name() == "[stack]") {
       // found the stack!
       _segments->emplace_back(s.startAddress(), s.endAddress(), "stack");
@@ -44,12 +45,15 @@ MemoryMap::MemoryMap() {
       // found the text segment (read-only data)
       _segments->emplace_back(s.startAddress(), s.endAddress(), "text");
       _text = &_segments->back();
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     } else if (s.contains(&edata - 1)) {
       // found the data segment (global variables)
       _segments->emplace_back(s.startAddress(), s.endAddress(), "data");
       _data = &_segments->back();
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     } else if (s.name() == "") {
       _segments->emplace_back(s.startAddress(), s.endAddress(), "anonymous");
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     }
   }
 

@@ -49,7 +49,7 @@ void WeightedAdaptiveMode::printParameters() {
 void WeightedAdaptiveMode::processSegmentAddition(
     const MemorySegment& segment) {
   if (segment.length() > (1UL << 14)) {
-    // segment.print();
+    //segment.print();
     place_pages_weighted_initial(segment);
   }
 }
@@ -108,6 +108,14 @@ void WeightedAdaptiveMode::start() {
   /*LINFO("Setting default memory policy to interleaved");
    set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
    numa_get_mems_allowed()->size);*/
+  // use weighted interleave as a default!
+  /*MemoryMap &segments = MemoryMap::getInstance();
+  for (auto &segment : segments) {
+  if (segment.length() > (1UL << 14)) {
+    segment.print();
+    place_pages_weighted_initial(segment);
+  }
+  }*/
 
   // start adaptive thread
   std::thread adaptiveThread(&WeightedAdaptiveMode::adaptiveThread, this);

@@ -52,15 +52,15 @@ void FixedRatioMode::printParameters() {
 void FixedRatioMode::processSegmentAddition(const MemorySegment& segment) {
   if (segment.length() > (1UL << 14)) {
     // segment.print();
-    // place_pages_weighted_initial(segment);
+    place_pages_weighted_initial(segment);
   }
 }
 
 void FixedRatioMode::pollerThread() {
   while (true) {
     LINFOF("Fixed Ratio selected. Placing %lf in local node.", _local_ratio);
-    //place_all_pages(_local_ratio);
-    place_all_pages_adaptive(_local_ratio);
+    place_all_pages(_local_ratio);
+    //place_all_pages_adaptive(_local_ratio);
     unstickymem_log(_local_ratio);
     usleep(200000);
     double stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
@@ -81,9 +81,9 @@ void FixedRatioMode::pollerThread() {
 
 void FixedRatioMode::start() {
   // set default memory policy to interleaved
-  LDEBUG("Setting default memory policy to interleaved");
+ /* LDEBUG("Setting default memory policy to interleaved");
   set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
-                numa_get_mems_allowed()->size);
+                numa_get_mems_allowed()->size);*/
 
   // double stall_rate;
   // set sum_ww & sum_nww & initialize the weights!
