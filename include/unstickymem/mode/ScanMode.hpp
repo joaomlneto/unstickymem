@@ -12,8 +12,8 @@ class ScanMode : public Mode {
   unsigned int _wait_start;
   unsigned int _num_polls;
   unsigned int _num_poll_outliers;
-  useconds_t   _poll_sleep;
-  bool         _exit_when_finished;
+  useconds_t _poll_sleep;
+  bool _exit_when_finished;
 
  public:
   static std::string name() {
@@ -25,7 +25,7 @@ class ScanMode : public Mode {
   }
 
   static std::unique_ptr<Mode> createInstance() {
-   return std::make_unique<ScanMode>();
+    return std::make_unique<ScanMode>();
   }
 
   po::options_description getOptions();

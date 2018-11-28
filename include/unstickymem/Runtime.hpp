@@ -13,9 +13,9 @@ namespace unstickymem {
 
 class Runtime {
  private:
-  std::string           _mode_name;
+  std::string _mode_name;
   std::shared_ptr<Mode> _mode;
-  bool                  _autostart;
+  bool _autostart;
 
  private:
   Runtime();

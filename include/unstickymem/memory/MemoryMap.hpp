@@ -1,9 +1,9 @@
-
 #ifndef INCLUDE_UNSTICKYMEM_MEMORY_MEMORYMAP_HPP_
 #define INCLUDE_UNSTICKYMEM_MEMORY_MEMORYMAP_HPP_
 
 #include <stdlib.h>
 
+#include <list>
 #include <iterator>
 #include <mutex>
 #include <string>
@@ -25,7 +25,7 @@ using Alloc = ipc::allocator<T, Manager>;
 template<typename K>
 using List = ipc::list<K, Alloc<K> >;
 
-typedef List<MemorySegment> SegmentsList;
+typedef std::list<MemorySegment> SegmentsList;
 
 class MemoryMap {
  private:
@@ -38,7 +38,7 @@ class MemoryMap {
 
   // FIXME(joaomlneto): this won't work if multiple unstickymem processes
   //                    are running!!!
-  Segment _segment{ipc::create_only, "unstickymem", 1ul<<40};
+  //Segment _segment { ipc::create_only, "unstickymem", 1ul << 40 };
 
  private:
   MemoryMap();
@@ -54,28 +54,28 @@ class MemoryMap {
   void updateHeap(void);
 
   // iterators
-  SegmentsList::iterator       begin()        noexcept;
-  SegmentsList::iterator       end()          noexcept;
+  SegmentsList::iterator begin() noexcept;
+  SegmentsList::iterator end() noexcept;
   SegmentsList::const_iterator cbegin() const noexcept;
-  SegmentsList::const_iterator cend()   const noexcept;
+  SegmentsList::const_iterator cend() const noexcept;
 
   // handle allocations/deallocations
   void* handle_malloc(size_t size);
   void* handle_calloc(size_t nmemb, size_t size);
   void* handle_realloc(void *ptr, size_t size);
   void* handle_reallocarray(void *ptr, size_t nmemb, size_t size);
-  void  handle_free(void *ptr);
-  int   handle_posix_memalign(void **memptr, size_t alignment, size_t size);
-  void* handle_mmap(void *addr, size_t length, int prot,
-                    int flags, int fd, off_t offset);
-  int   handle_munmap(void *addr, size_t length);
+  void handle_free(void *ptr);
+  int handle_posix_memalign(void **memptr, size_t alignment, size_t size);
+  void* handle_mmap(void *addr, size_t length, int prot, int flags, int fd,
+                    off_t offset);
+  int handle_munmap(void *addr, size_t length);
   void *handle_mremap(void *old_address, size_t old_size, size_t new_size,
                       int flags, ... /* void *new_address */);
-  int   handle_brk(void* addr);
+  int handle_brk(void* addr);
   void* handle_sbrk(intptr_t increment);
-  long  handle_mbind(void* addr, unsigned long len, int mode,
-                     const unsigned long *nodemask, unsigned long maxnode,
-                     unsigned flags);
+  long handle_mbind(void* addr, unsigned long len, int mode,
+                    const unsigned long *nodemask, unsigned long maxnode,
+                    unsigned flags);
 };
 
 }  // namespace unstickymem

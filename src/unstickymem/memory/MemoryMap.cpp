@@ -1,12 +1,10 @@
-
 #include <sys/mman.h>
 
 #include <algorithm>
 #include <numeric>
 #include <iostream>
 
-// #include <boost/stacktrace.hpp>
-
+#include "unstickymem/Runtime.hpp"
 #include "unstickymem/memory/MemoryMap.hpp"
 #include "unstickymem/Logger.hpp"
 #include "unstickymem/wrap.hpp"
@@ -20,8 +18,10 @@ namespace unstickymem {
 MemoryMap::MemoryMap() {
   // create independent segment to store the MemoryMap
   LFATAL("going to create segment");
-  Manager *segment_manager = _segment.get_segment_manager();
-  _segments = _segment.construct<SegmentsList>("unstickymem")(segment_manager);
+  /*Manager *segment_manager = _segment.get_segment_manager();
+  _segments = _segment.construct < SegmentsList
+      > ("unstickymem")(segment_manager);*/
+  _segments = new std::list<MemorySegment>();
 
   // open maps file
   FILE *maps = fopen("/proc/self/maps", "r");
@@ -36,6 +36,7 @@ MemoryMap::MemoryMap() {
       // found the heap!
       _segments->emplace_back(s.startAddress(), s.endAddress(), "heap");
       _heap = &_segments->back();
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     } else if (s.name() == "[stack]") {
       // found the stack!
       _segments->emplace_back(s.startAddress(), s.endAddress(), "stack");
@@ -44,12 +45,15 @@ MemoryMap::MemoryMap() {
       // found the text segment (read-only data)
       _segments->emplace_back(s.startAddress(), s.endAddress(), "text");
       _text = &_segments->back();
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     } else if (s.contains(&edata - 1)) {
       // found the data segment (global variables)
       _segments->emplace_back(s.startAddress(), s.endAddress(), "data");
       _data = &_segments->back();
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     } else if (s.name() == "") {
       _segments->emplace_back(s.startAddress(), s.endAddress(), "anonymous");
+      Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
     }
   }
 
@@ -69,10 +73,10 @@ MemoryMap& MemoryMap::getInstance(void) {
   if (!object) {
     LDEBUG("Creating MemoryMap singleton object");
     void *buf = WRAP(mmap)(nullptr, sizeof(MemoryMap), PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                           MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     DIEIF(buf == MAP_FAILED, "error allocating space for memory map object");
     LFATAL("before constructor");
-    object = new(buf) MemoryMap();
+    object = new (buf) MemoryMap();
   }
   return *object;
 }
@@ -109,8 +113,8 @@ void *MemoryMap::handle_malloc(size_t size) {
 
   // compute the end address
   void *start = result;
-  void *end = reinterpret_cast<void*>
-    (reinterpret_cast<intptr_t>(result) + size - 1);
+  void *end = reinterpret_cast<void*>(reinterpret_cast<intptr_t>(result) + size
+      - 1);
 
   // update the heap
   updateHeap();
@@ -119,6 +123,7 @@ void *MemoryMap::handle_malloc(size_t size) {
   if (!_heap->contains(result)) {
     std::scoped_lock lock(_segments_lock);
     _segments->emplace_back(start, end, "malloc");
+    Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
   }
   return result;
 }
@@ -128,8 +133,8 @@ void* MemoryMap::handle_calloc(size_t nmemb, size_t size) {
 
   // compute end address
   void *start = result;
-  void *end = reinterpret_cast<void*>
-    (reinterpret_cast<intptr_t>(result) + (nmemb * size) - 1);
+  void *end = reinterpret_cast<void*>(reinterpret_cast<intptr_t>(result)
+      + (nmemb * size) - 1);
 
   // update the heap
   updateHeap();
@@ -138,6 +143,7 @@ void* MemoryMap::handle_calloc(size_t nmemb, size_t size) {
   if (!_heap->contains(result)) {
     std::scoped_lock lock(_segments_lock);
     _segments->emplace_back(start, end, "calloc");
+    Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
   }
   return result;
 }
@@ -157,18 +163,24 @@ void* MemoryMap::handle_realloc(void *ptr, size_t size) {
   if (!was_in_heap) {
     std::scoped_lock lock(_segments_lock);
     _segments->remove_if([ptr](const MemorySegment& s) {
-      return s.contains(ptr);
+      if (s.contains(ptr)) {
+        std::shared_ptr<Mode> mode = Runtime::getInstance().getMode();
+        mode->processSegmentRemoval(s);
+        return true;
+      }
+      return false;
     });
   }
 
   if (!is_in_heap) {
     // compute start and end address
     void *start = result;
-    void *end = reinterpret_cast<void*>
-      (reinterpret_cast<intptr_t>(result) + size - 1);
+    void *end = reinterpret_cast<void*>(reinterpret_cast<intptr_t>(result)
+        + size - 1);
     // insert the new segment
     std::scoped_lock lock(_segments_lock);
     _segments->emplace_back(start, end, "realloc");
+    Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
   }
   return result;
 }
@@ -190,7 +202,12 @@ void MemoryMap::handle_free(void *ptr) {
     // if not in heap, remove the mapped segment
     std::scoped_lock lock(_segments_lock);
     _segments->remove_if([ptr](const MemorySegment& s) {
-      return s.contains(ptr);
+      if (s.contains(ptr)) {
+        std::shared_ptr<Mode> mode = Runtime::getInstance().getMode();
+        mode->processSegmentRemoval(s);
+        return true;
+      }
+      return false;
     });
   }
 }
@@ -205,30 +222,32 @@ int MemoryMap::handle_posix_memalign(void **memptr, size_t alignment,
 
   // compute region start and address
   void *start = *memptr;
-  void *end = reinterpret_cast<void*>
-    (reinterpret_cast<intptr_t>(*memptr) + size - 1);
+  void *end = reinterpret_cast<void*>(reinterpret_cast<intptr_t>(*memptr) + size
+      - 1);
 
   // add the new region
   if (!_heap->contains(*memptr)) {
     std::scoped_lock lock(_segments_lock);
     _segments->emplace_back(start, end, "posix_memalign");
+    Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
   }
 
   return result;
 }
 
-void* MemoryMap::handle_mmap(void *addr, size_t length, int prot,
-                             int flags, int fd, off_t offset) {
+void* MemoryMap::handle_mmap(void *addr, size_t length, int prot, int flags,
+                             int fd, off_t offset) {
   void *result = WRAP(mmap)(addr, length, prot, flags, fd, offset);
 
   // compute the end address
   void *start = result;
-  void *end = reinterpret_cast<void*>
-    (reinterpret_cast<intptr_t>(result) + length - 1);
+  void *end = reinterpret_cast<void*>(reinterpret_cast<intptr_t>(result)
+      + length - 1);
 
   // insert the new segment
   std::scoped_lock lock(_segments_lock);
   _segments->emplace_back(start, end, "mmap");
+  Runtime::getInstance().getMode()->processSegmentAddition(_segments->back());
 
   // return the result
   return result;
@@ -240,7 +259,12 @@ int MemoryMap::handle_munmap(void *addr, size_t length) {
   // remove the mapped region
   std::scoped_lock lock(_segments_lock);
   _segments->remove_if([addr](const MemorySegment& s) {
-    return s.contains(addr);
+    if (s.contains(addr)) {
+      std::shared_ptr<Mode> mode = Runtime::getInstance().getMode();
+      mode->processSegmentRemoval(s);
+      return true;
+    }
+    return false;
   });
 
   return result;

@@ -1,4 +1,3 @@
-
 #ifndef INCLUDE_UNSTICKYMEM_MEMORY_MEMORYSEGMENT_HPP_
 #define INCLUDE_UNSTICKYMEM_MEMORY_MEMORYSEGMENT_HPP_
 
@@ -10,9 +9,9 @@ namespace unstickymem {
 
 class MemorySegment {
  protected:
-  void*         _startAddress;
-  void*         _endAddress;
-  std::string   _name;
+  void* _startAddress;
+  void* _endAddress;
+  std::string _name;
 
  public:
   MemorySegment(void *start, void *end, std::string name);

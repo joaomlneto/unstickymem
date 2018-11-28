@@ -411,6 +411,7 @@ int main(int argc, char *argv[]) {
   core_to_node = calloc(ncpus, sizeof(*core_to_node));
   node_to_used_memory = calloc(nnodes, sizeof(*node_to_used_memory));
   
+  unstickymem_start();
   /* 1. Create a thread for each core specified on the command line */
   struct thread_data * pdata;
   

@@ -1,12 +1,14 @@
-
 #include "unstickymem/memory/MemorySegment.hpp"
 #include "unstickymem/PagePlacement.hpp"
 #include "unstickymem/Logger.hpp"
 
 namespace unstickymem {
 
-MemorySegment::MemorySegment(void *start, void *end, std::string name) :
-  _startAddress(start), _endAddress(end), _name(name) {}
+MemorySegment::MemorySegment(void *start, void *end, std::string name)
+    : _startAddress(start),
+      _endAddress(end),
+      _name(name) {
+}
 
 MemorySegment::MemorySegment(char *line) {
   int name_start = 0;
@@ -20,11 +22,11 @@ MemorySegment::MemorySegment(char *line) {
   ino_t inode;
 
   // parse string
-  DIEIF(sscanf(line, "%lx-%lx %7s %lx %u:%u %lu %n%*[^\n]%n",
-                     &addr_start, &addr_end, perms_str, &offset,
-                     &deviceMajor, &deviceMinor, &inode,
-                     &name_start, &name_end) < 7,
-        "FAILED TO PARSE");
+  DIEIF(
+      sscanf(line, "%lx-%lx %7s %lx %u:%u %lu %n%*[^\n]%n", &addr_start,
+             &addr_end, perms_str, &offset, &deviceMajor, &deviceMinor, &inode,
+             &name_start, &name_end) < 7,
+      "FAILED TO PARSE");
 
   // convert addresses
   _startAddress = reinterpret_cast<void*>(addr_start);
@@ -70,25 +72,20 @@ void* MemorySegment::pageAlignedEndAddress() const {
 }
 
 size_t MemorySegment::length() const {
-  return reinterpret_cast<intptr_t>(_endAddress)
-       - reinterpret_cast<intptr_t>(_startAddress)
-       + 1;
+  return reinterpret_cast<intptr_t>(endAddress())
+      - reinterpret_cast<intptr_t>(startAddress()) + 1;
 }
 
 size_t MemorySegment::pageAlignedLength() const {
   return reinterpret_cast<intptr_t>(pageAlignedEndAddress())
-       - reinterpret_cast<intptr_t>(pageAlignedStartAddress())
-       + 1;
+      - reinterpret_cast<intptr_t>(pageAlignedStartAddress());
 }
 
 void MemorySegment::print() const {
   char info[1024];
-  snprintf(info, sizeof(info),
-           "[%18p-%18p] (%8lu pages) %s",
-           _startAddress, _endAddress,
-           (length() + 1) / sysconf(_SC_PAGESIZE),
-           _name.c_str());
-  L->printHorizontalRule(info, 7);
+  snprintf(info, sizeof(info), "[%18p-%18p] (%8lu pages) %s", _startAddress,
+           _endAddress, (length() + 1) / sysconf(_SC_PAGESIZE), _name.c_str());
+  L->printHorizontalRule(info, 4);
 }
 
 bool MemorySegment::contains(void *addr) const {

@@ -30,8 +30,10 @@ class Mode {
   virtual void printParameters() = 0;
   virtual void start() = 0;
 
-  virtual void processSegmentAddition(const MemorySegment& segment) {}
-  virtual void processSegmentRemoval(const MemorySegment& segment)  {}
+  virtual void processSegmentAddition(const MemorySegment& segment) {
+  }
+  virtual void processSegmentRemoval(const MemorySegment& segment) {
+  }
 
   static void registerMode(std::string const & name, Description desc) {
     // disallow replacing entries
@@ -49,20 +51,19 @@ class Mode {
 
   static void printAvailableModes() {
     LWARN("Available Modes:");
-    for (auto & [name, d] : registry()) {
-      LWARNF("> %-10s (%s)", name.c_str(), d.description.c_str());
-    }
+  for (auto & [name, d] : registry()) {
+    LWARNF("> %-10s (%s)", name.c_str(), d.description.c_str());
   }
+}
 
-  template <typename ModeImplementation>
-  struct Registrar {
-    explicit Registrar(std::string const & name,
-                       std::string const & description) {
-      Mode::registerMode(name, {
-        &ModeImplementation::createInstance, description
-      });
-    }
-  };
+template<typename ModeImplementation>
+struct Registrar {
+  explicit Registrar(std::string const & name,
+                     std::string const & description) {
+    Mode::registerMode(name,
+                       { &ModeImplementation::createInstance, description });
+  }
+};
 };
 
 }  // namespace unstickymem

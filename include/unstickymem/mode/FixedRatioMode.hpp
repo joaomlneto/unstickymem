@@ -9,10 +9,10 @@ namespace unstickymem {
 
 class FixedRatioMode : public Mode {
  private:
-  double       _local_ratio;
+  double _local_ratio;
   unsigned int _num_polls;
   unsigned int _num_poll_outliers;
-  useconds_t   _poll_sleep;
+  useconds_t _poll_sleep;
 
  public:
   static std::string name() {
@@ -31,6 +31,7 @@ class FixedRatioMode : public Mode {
   void printParameters();
   void pollerThread();
   void start();
+  void processSegmentAddition(const MemorySegment& segment);
 };
 
 }  // namespace unstickymem

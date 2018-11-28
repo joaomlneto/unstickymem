@@ -10,7 +10,7 @@ class AdaptiveMode : public Mode {
   unsigned int _wait_start;
   unsigned int _num_polls;
   unsigned int _num_poll_outliers;
-  useconds_t   _poll_sleep;
+  useconds_t _poll_sleep;
  public:
   static std::string name() {
     return "adaptive";
