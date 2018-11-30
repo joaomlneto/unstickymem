@@ -9,6 +9,7 @@ namespace unstickymem {
 
 class WeightedAdaptiveMode : public Mode {
  private:
+  bool _started = false;
   unsigned int _wait_start;
   unsigned int _num_polls;
   unsigned int _num_poll_outliers;

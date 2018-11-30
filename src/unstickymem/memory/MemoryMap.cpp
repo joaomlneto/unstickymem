@@ -88,7 +88,11 @@ void MemoryMap::print(void) const {
 }
 
 void MemoryMap::updateHeap(void) {
-  _heap->endAddress(WRAP(sbrk)(0));
+  void *addr = WRAP(sbrk)(0);
+  if (_heap->endAddress() != addr) {
+    _heap->endAddress(WRAP(sbrk)(0));
+    //Runtime::getInstance().getMode()->processSegmentAddition(*_heap);
+  }
 }
 
 // iterators

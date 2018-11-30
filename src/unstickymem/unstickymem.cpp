@@ -70,9 +70,9 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
   get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);
 
   // set default memory policy to interleaved
-  /*LDEBUG("Setting default memory policy to interleaved");
+  LDEBUG("Setting default memory policy to interleaved");
    set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
-   numa_get_mems_allowed()->size);*/
+   numa_get_mems_allowed()->size + 1);
 
   // remove the previous unstickymem library segment (if exists)
   // boost::interprocess::shared_memory_object::remove("unstickymem");
