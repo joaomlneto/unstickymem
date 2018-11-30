@@ -1,6 +1,6 @@
 # https://stackoverflow.com/questions/17511496/how-to-create-a-shared-library-with-cmake
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(unstickymem VERSION 0.1.0 LANGUAGES CXX C)
 
 include(GNUInstallDirs)
