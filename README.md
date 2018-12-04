@@ -1,6 +1,7 @@
 # unstickymem
 
 [![Build Status](https://travis-ci.com/joaomlneto/unstickymem.svg?token=QsVQsaqyQNrgjyTyzV4W&branch=master)](https://travis-ci.com/joaomlneto/unstickymem)
+[![CodeFactor](https://www.codefactor.io/repository/github/joaomlneto/unstickymem/badge)](https://www.codefactor.io/repository/github/joaomlneto/unstickymem)
 
 A library for dynamic page placement in NUMA nodes.
 
