@@ -48,13 +48,14 @@ void WeightedAdaptiveMode::printParameters() {
 
 void WeightedAdaptiveMode::processSegmentAddition(
     const MemorySegment& segment) {
-  if (!_started) {
-    return;
-  }
+///*  if (!_started) {
+ //   return;
+ // }
   if (segment.length() > (1UL << 14)) {
     // segment.print();
     place_pages_weighted_initial(segment);
   }
+  //*/
 }
 
 void WeightedAdaptiveMode::adaptiveThread() {
@@ -72,9 +73,12 @@ void WeightedAdaptiveMode::adaptiveThread() {
 
   // slowly achieve awesomeness - asymmetric weights version!
   int i;
-  for (i = 10; i <= sum_nww; i += ADAPTATION_STEP) {
+  for (i = 0; i <= sum_nww; i += ADAPTATION_STEP) {
     LINFOF("Going to check a ratio of %d", i);
-    place_all_pages(segments, i);
+    //First check the stall rate of the initial weights without moving pages!
+    if (i != 0) {
+      place_all_pages(segments, i);
+    }
     usleep(200000);
     //sleep(1);
     unstickymem_log(i);
@@ -111,18 +115,18 @@ void WeightedAdaptiveMode::start() {
   /*LINFO("Setting default memory policy to interleaved");
    set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
    numa_get_mems_allowed()->size);*/
-
+  //return;
   // use weighted interleave as a default!
-  MemoryMap &segments = MemoryMap::getInstance();
+ /*MemoryMap &segments = MemoryMap::getInstance();
   for (auto &segment : segments) {
     if (segment.length() > (1UL << 14)) {
-     // segment.print();
+      // segment.print();
       place_pages_weighted_initial(segment);
     }
   }
 
   _started = true;
-
+*/
   // start adaptive thread
   std::thread adaptiveThread(&WeightedAdaptiveMode::adaptiveThread, this);
 
