@@ -177,7 +177,6 @@ void * doWork(void *arg) {
   set_affinity(tid, assigned_core);
   
   unsigned long length;
-  memset(memory_to_access, 0, memory_size);
   /** wait everyone to set data and thread affinity and initialize **/
   if (pthread_barrier_wait(&barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
     printf("threads initialized memory! let's go!\n");
@@ -386,6 +385,8 @@ int main(int argc, char *argv[]) {
   assert(posix_memalign((void**) &memory_to_access, sysconf(_SC_PAGESIZE), memory_size * nthreads) == 0);
 #endif
 
+  memset(memory_to_access, 0, memory_size * nthreads);
+  
   /** Scale the bench_time in cycles */
   bench_time = bench_time * get_cpu_freq();
   
