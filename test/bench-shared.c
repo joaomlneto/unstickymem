@@ -164,6 +164,8 @@ void * doWork(void *arg) {
   unsigned long thread_no = data->thread_no;
   uint64_t *memory_to_access = data->memory_to_access;
   size_t memory_size = data->memory_size;
+  printf("thread %lu: accessing memory starting at %p (%zu MB)\n",
+         thread_no, memory_to_access, memory_size>>20);
   
   struct timeval tstart, tend;
   double throughput;
@@ -174,49 +176,14 @@ void * doWork(void *arg) {
   tid = gettid();
   set_affinity(tid, assigned_core);
   
-  /**
-     Makes sure that arrays are on different pages to prevent possible page sharing. Only usefull for small arrays.
-     Use large pages if we can to reduce the TLB impact on performance (mostly useful when measuring latency)
-  **/
-/*  uint64_t * memory_to_access;
-#ifdef MADV_HUGEPAGE
-  if(use_large_pages) {
-    size_t hpage_size = get_hugepage_size();
-    
-    if(!hpage_size) {
-      fprintf(stderr, "(thread %lu) Cannot determine huge page size. Falling back to regular pages\n", tn->thread_no);
-      assert(posix_memalign((void**)&memory_to_access, sysconf(_SC_PAGESIZE), memory_size) == 0);
-    }
-    else {
-      assert(posix_memalign((void**)&memory_to_access, get_hugepage_size(), memory_size) == 0);
-      if(madvise(memory_to_access, memory_size, MADV_HUGEPAGE)) {
-  fprintf(stderr, "(thread %lu) Cannot use large pages.\n", tn->thread_no);
-      }
-    }
-  }
-  else {
-    assert(posix_memalign((void**)&memory_to_access, sysconf(_SC_PAGESIZE), memory_size) == 0);
-  }
-#else
-  assert(
-   posix_memalign((void**) &memory_to_access, sysconf(_SC_PAGESIZE),
-      memory_size) == 0);
-#endif
-*/
   unsigned long length;
-  int initialized = 0;
+  memset(memory_to_access, 0, memory_size);
+  /** wait everyone to set data and thread affinity and initialize **/
+  if (pthread_barrier_wait(&barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
+    printf("threads initialized memory! let's go!\n");
+  }
   
   for (int i=0; i < 10; i++) {
-    
-    if (!initialized) {
-      memset(memory_to_access, 0, memory_size);
-      /** wait everyone to set data and thread affinity and initialize **/
-      if (pthread_barrier_wait(&barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
-        printf("threads initialized memory! let's go!\n");
-      }
-      initialized=1;
-    }
-
     if (pthread_barrier_wait(&barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
       printf("starting new iteration..............\n");
     }
@@ -403,20 +370,20 @@ int main(int argc, char *argv[]) {
     size_t hpage_size = get_hugepage_size();
     if(!hpage_size) {
       fprintf(stderr, "(thread %lu) Cannot determine huge page size. Falling back to regular pages\n", tn->thread_no);
-      assert(posix_memalign((void**)&memory_to_access, sysconf(_SC_PAGESIZE), memory_size) == 0);
+      assert(posix_memalign((void**)&memory_to_access, sysconf(_SC_PAGESIZE), memory_size * nthreads) == 0);
     }
     else {
-      assert(posix_memalign((void**)&memory_to_access, get_hugepage_size(), memory_size) == 0);
+      assert(posix_memalign((void**)&memory_to_access, get_hugepage_size(), memory_size * nthreads) == 0);
       if(madvise(memory_to_access, memory_size, MADV_HUGEPAGE)) {
         fprintf(stderr, "(thread %lu) Cannot use large pages.\n", tn->thread_no);
       }
     }
   }
   else {
-    assert(posix_memalign((void**) &memory_to_access, sysconf(_SC_PAGESIZE), memory_size) == 0);
+    assert(posix_memalign((void**) &memory_to_access, sysconf(_SC_PAGESIZE), memory_size * nthreads) == 0);
   }
 #else
-  assert(posix_memalign((void**) &memory_to_access, sysconf(_SC_PAGESIZE), memory_size) == 0);
+  assert(posix_memalign((void**) &memory_to_access, sysconf(_SC_PAGESIZE), memory_size * nthreads) == 0);
 #endif
 
   /** Scale the bench_time in cycles */
@@ -438,7 +405,6 @@ int main(int argc, char *argv[]) {
   core_to_node = calloc(ncpus, sizeof(*core_to_node));
   node_to_used_memory = calloc(nnodes, sizeof(*node_to_used_memory));
   
-  unstickymem_start();
   /* 1. Create a thread for each core specified on the command line */
   struct thread_data * pdata;
   
@@ -447,11 +413,13 @@ int main(int argc, char *argv[]) {
     assert(pdata);
     pdata->assigned_core = cores[i];
     pdata->thread_no = i;
-    pdata->memory_to_access = memory_to_access + thread_buffer_size * i;
-    pdata->memory_size = thread_buffer_size;
+    pdata->memory_to_access = (uint64_t*) ((intptr_t)memory_to_access + memory_size * i);
+    pdata->memory_size = memory_size;
     assert(pthread_create(&threads[i], NULL, doWork, (void *) pdata) == 0);
   }
   
+  unstickymem_start();
+
   for (i = 0; i < nthreads; ++i) {
     pthread_join(threads[i], NULL);
   }
