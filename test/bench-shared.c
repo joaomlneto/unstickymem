@@ -396,6 +396,7 @@ int main(int argc, char *argv[]) {
   /** Allocate global shared buffer for threads to work on **/ 
   //size_per_thread = (cacheSize * x);
   size_t memory_size = DEFAULT_MEMORY_BENCH_SIZE_TO_BENCH;
+  size_t thread_buffer_size = memory_size / nthreads;
   uint64_t *memory_to_access;
 #ifdef MADV_HUGEPAGE
   if(use_large_pages) {
@@ -445,7 +446,9 @@ int main(int argc, char *argv[]) {
     pdata = malloc(sizeof(struct thread_data));
     assert(pdata);
     pdata->assigned_core = cores[i];
-    pdata->thread_no = i;    
+    pdata->thread_no = i;
+    pdata->memory_to_access = memory_to_access + thread_buffer_size * i;
+    pdata->memory_size = thread_buffer_size;
     assert(pthread_create(&threads[i], NULL, doWork, (void *) pdata) == 0);
   }
   
