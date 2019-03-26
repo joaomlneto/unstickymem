@@ -13,7 +13,7 @@ namespace unstickymem {
 
 class Runtime {
  private:
-  std::string _mode_name;
+  //std::string _mode_name;
   std::shared_ptr<Mode> _mode;
   bool _autostart;
 
@@ -22,6 +22,7 @@ class Runtime {
 
  public:
   //singleton
+  std::string _mode_name;
   static Runtime& getInstance(void);
   Runtime(Runtime const&) = delete;
   void operator=(Runtime const&) = delete;

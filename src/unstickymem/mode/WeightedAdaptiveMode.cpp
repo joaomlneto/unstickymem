@@ -65,6 +65,7 @@ void WeightedAdaptiveMode::adaptiveThread() {
   double stall_rate;
 
   get_stall_rate_v2();
+  get_elapsed_stall_rate();
   sleep(_wait_start);
 
   // dump mapping information
@@ -72,9 +73,14 @@ void WeightedAdaptiveMode::adaptiveThread() {
   //segments.print();
 
   // slowly achieve awesomeness - asymmetric weights version!
-  int i;
-  for (i = 0; i <= sum_nww; i += ADAPTATION_STEP) {
-    LINFOF("Going to check a ratio of %d", i);
+  double i;
+  bool terminate = false;
+  for (i = 0; !terminate; i += ADAPTATION_STEP) {
+    if(i > sum_nww){
+      i = sum_nww;
+      terminate = true;
+    }
+    LINFOF("Going to check a ratio of %lf", i);
     //First check the stall rate of the initial weights without moving pages!
     if (i != 0) {
       place_all_pages(segments, i);
@@ -105,7 +111,7 @@ void WeightedAdaptiveMode::adaptiveThread() {
     local_ratio = i;
   }
   LINFO("My work here is done! Enjoy the speedup");
-  LINFOF("Ratio: %d", local_ratio);
+  LINFOF("Ratio: %lf", local_ratio);
   LINFOF("Stall Rate: %1.10lf", stall_rate);
   LINFOF("Best Measured Stall Rate: %1.10lf", best_stall_rate);
 }

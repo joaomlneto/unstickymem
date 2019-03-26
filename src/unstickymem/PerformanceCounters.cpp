@@ -22,6 +22,8 @@ namespace unstickymem {
 static bool initiatialized = false;
 static FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt",
                        "a");
+static FILE *f_1 = fopen("/home/dgureya/devs/unstickymem/elapsed_stall_rate_log.txt",
+                        "a");
 
 //output stall rate to a log file
 void unstickymem_log(double ratio, double sr) {
@@ -33,6 +35,12 @@ void unstickymem_log(double ratio) {
   DIEIF(f == nullptr, "error opening file");
   fprintf(f, "Stall rates for %1.2lf\n", ratio);
 }
+
+void unstickymem_log_v1(double sr, std::string mode) {
+  DIEIF(f_1 == nullptr, "error opening file");
+  fprintf(f_1, "%s: elapsed stall rate\t%1.2lf\n", mode.c_str(), sr);
+}
+
 
 /*
  * A function that uses the likwid library to measure the stall rates
@@ -94,6 +102,7 @@ void initialize_likwid() {
     ncpus_per_node = ncpus / nnodes;
 
     //active_cpus = OPT_NUM_WORKERS_VALUE * ncpus_per_node;
+    OPT_NUM_WORKERS_VALUE=3;
     active_cpus = 1;
 
     LINFOF(
@@ -103,12 +112,25 @@ void initialize_likwid() {
     //cpus = (int*) malloc(topo->numHWThreads * sizeof(int));
     //for now only monitor one CPU
     cpus = (int*) malloc(active_cpus * sizeof(int));
+   
     if (!cpus)
       exit(-1);		//return 1;
 
+    if (OPT_NUM_WORKERS_VALUE == 3) {
+    for (int i = 0; i < active_cpus; i++) {
+      cpus[i] = 8;
+      //printf("cpu[%d]\n", cpus[i]);
+      //printf("threadpool[%d]", topo->threadPool[i].apicId);
+      //exit(-1);
+    }
+  } else {
     for (int i = 0; i < active_cpus; i++) {
       cpus[i] = topo->threadPool[i].apicId;
+      //printf("threadpool[%d]\n", topo->threadPool[i].apicId);
+      //printf("cpu[%d]", cpus[i]);
+      //exit(-1);
     }
+  }
 
     // Must be called before perfmon_init() but only if you want to use another
     // access mode as the pre-configured one. For direct access (0) you have to
@@ -187,6 +209,96 @@ void initialize_likwid() {
 
 }
 
+double get_elapsed_stall_rate() {
+  int i, j;
+  double result = 0.0;
+
+  //static double prev_cycles = 0;
+  static double elapsed_stalls = 0;
+  static uint64_t elapsed_clockcounts = 0;
+
+  // Stop all counters in the previously started event set before doing a read.
+  err = perfmon_stopCounters();
+  if (err < 0) {
+    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
+            (-1 * err) - 1);
+    perfmon_finalize();
+    topology_finalize();
+    //return 1;
+    exit(-1);
+  }
+
+  // Read the result of every thread/CPU for all events in estr.
+  // For now just read/print for the active cores only, actually just one core at the moment!
+  // double cycles = 0;
+  double stalls = 0;
+  j = 0;
+  // char* ptr = NULL;
+  //Results depending on the architecture!
+  if (info->isIntel == 1) {
+    //ptr = strtok(intel_estr, ",");
+    // ptr = intel_estr;
+  } else if (info->isIntel == 0) {
+    //ptr = strtok(amd_estr, ",");
+    // ptr = amd_estr;
+  } else {
+    LDEBUG(
+        "Error: Something went wrong, can't get the measurements at the moment!\n");
+    exit(-1);
+  }
+
+  //while (ptr != NULL) {
+  //for (i = 0; i < active_cpus; i++) {
+    //result = perfmon_getResult(gid, j, i);
+    //if (j == 0) {
+    //  cycles += result;
+    //} else {
+    //stalls += result;
+    //}
+    //printf("Measurement result for event set %s at CPU %d: %f\n", ptr,
+    //    cpus[i], result);
+  //}
+  //  ptr = strtok(NULL, ",");
+  //  j++;
+  //}
+   if (OPT_NUM_WORKERS_VALUE == 3) {
+    result = perfmon_getResult(gid, 0, 0);
+    stalls += result;
+  } else {
+    result = perfmon_getResult(gid, 0, 0);
+    stalls += result;
+  }
+
+
+  uint64_t clock = readtsc();  // read clock
+  //double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);
+  stalls = stalls / active_cpus;
+  double stall_rate = ((double) (stalls - elapsed_stalls))
+      / (clock - elapsed_clockcounts);
+
+  //printf("clock: %" PRIu64 " prev_clockcounts: %" PRIu64 " clock - prev_clockcounts: %" PRIu64 "\n", clock, prev_clockcounts, (clock - prev_clockcounts));
+  //printf("stalls: %.0f prev_stalls: %.0f stalls - prev_stalls: %.0f\n",
+  //    stalls, prev_stalls, (stalls - prev_stalls));
+  //printf("stall_rate: %f\n", stall_rate);
+
+  //prev_cycles = cycles;
+  elapsed_stalls = stalls;
+  elapsed_clockcounts = clock;
+
+  err = perfmon_startCounters();
+  if (err < 0) {
+    LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
+            (-1 * err) - 1);
+    perfmon_finalize();
+    topology_finalize();
+    exit(-1);
+    //return 1;
+  }
+
+  return stall_rate;
+}
+
+
 double get_stall_rate_v2() {
   int i, j;
   double result = 0.0;
@@ -226,19 +338,27 @@ double get_stall_rate_v2() {
   }
 
   //while (ptr != NULL) {
-  for (i = 0; i < active_cpus; i++) {
-    result = perfmon_getResult(gid, j, i);
+  //for (i = 0; i < active_cpus; i++) {
+    //result = perfmon_getResult(gid, j, i);
     //if (j == 0) {
     //	cycles += result;
     //} else {
-    stalls += result;
+    //stalls += result;
     //}
     //printf("Measurement result for event set %s at CPU %d: %f\n", ptr,
     //		cpus[i], result);
-  }
+  //}
   //	ptr = strtok(NULL, ",");
   //	j++;
   //}
+  if (OPT_NUM_WORKERS_VALUE == 3) {
+    result = perfmon_getResult(gid, 0, 0);
+    stalls += result;
+  } else {
+    result = perfmon_getResult(gid, 0, 0);
+    stalls += result;
+  }
+
 
   uint64_t clock = readtsc();  // read clock
   //double stall_rate = (stalls - prev_stalls) / (cycles - prev_cycles);

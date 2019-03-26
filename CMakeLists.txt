@@ -73,8 +73,10 @@ endif()
 ################################################################################
 
 # gureya's benchmark
-add_executable(autobench test/autobench.c)
-target_link_libraries(autobench unstickymem Threads::Threads -lnuma)
+add_executable(bench-private test/bench-private.c)
+target_link_libraries(bench-private unstickymem Threads::Threads numa)
+add_executable(bench-shared test/bench-shared.c)
+target_link_libraries(bench-shared unstickymem Threads::Threads numa)
 
 # hello world example
 add_executable(test_hello_world test/test_hello_world.c)

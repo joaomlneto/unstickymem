@@ -70,7 +70,7 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
   get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);
 
   // set default memory policy to interleaved
- /* LDEBUG("Setting default memory policy to interleaved");
+  /*LDEBUG("Setting default memory policy to interleaved");
    set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
    numa_get_mems_allowed()->size + 1);*/
 
@@ -90,6 +90,10 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
 __attribute((destructor)) void libunstickymem_finalize(void) {
   // cleanup shared memory object
   // boost::interprocess::shared_memory_object::remove("unstickymem");
+
+  //get the elapsed stall_rate
+  double stall_rate = get_elapsed_stall_rate();
+  unstickymem_log_v1(stall_rate, runtime->_mode_name);
 
   // stop all the counters
   stop_all_counters();
@@ -234,6 +238,21 @@ void get_sum_nww_ww(int num_workers) {
   } else if (num_workers == 4) {
     //workers: 0,1,2,3
     char weights[] = "/home/dgureya/devs/unstickymem/config/weights_4w.txt";
+    read_weights(weights);
+    //printf("Worker Nodes:\t");
+    LDEBUG("Worker Nodes: 0,1,2,3");
+    for (i = 0; i < MAX_NODES; i++) {
+      if (nodes_info[i].id == 0 || nodes_info[i].id == 1
+          || nodes_info[i].id == 2 || nodes_info[i].id == 3) {
+        //printf("nodes_info[%d].id=%d\t", i, nodes_info[i].id);
+        sum_ww += nodes_info[i].weight;
+      } else {
+        sum_nww += nodes_info[i].weight;
+      }
+    }
+  } else if (num_workers == 8) {
+    //workers: all
+    char weights[] = "/home/dgureya/devs/unstickymem/config/weights_8w.txt";
     read_weights(weights);
     //printf("Worker Nodes:\t");
     LDEBUG("Worker Nodes: 0,1,2,3");

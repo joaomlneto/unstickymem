@@ -62,6 +62,7 @@ void AdaptiveMode::adaptiveThread() {
   //		"could not set affinity for hw monitor thread");
 
   get_stall_rate_v2();
+  get_elapsed_stall_rate();
   sleep(_wait_start);
 
   // dump mapping information
@@ -71,6 +72,7 @@ void AdaptiveMode::adaptiveThread() {
   // slowly achieve awesomeness
   for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5
       * 5; local_percentage <= 100; local_percentage += ADAPTATION_STEP) {
+    if(local_percentage % 10 == 0 && local_percentage != 100) continue;
     local_ratio = ((double) local_percentage) / 100;
     LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
     place_all_pages_adaptive(segments, local_ratio);

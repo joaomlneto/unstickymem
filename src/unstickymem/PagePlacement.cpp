@@ -308,12 +308,47 @@ void place_pages(void *addr, unsigned long len, double r) {
     return;
 
 // bind the remainder to the local node
-  unsigned long zero_mask = 0;
-  LTRACEF("mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
-          local_addr, local_len);
-  DIEIF(
-      WRAP(mbind)(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
-      "mbind local failed");
+  struct bitmask *node_set = numa_bitmask_alloc(MAX_NODES);  // numa_allocate_nodemask();
+  if (OPT_NUM_WORKERS_VALUE == 1) {
+    //set the worker bitmask
+    numa_bitmask_setbit(node_set, 0);
+    DIEIF(
+        WRAP(mbind)(local_addr, local_len, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+        "mbind interleave failed");
+  } else if (OPT_NUM_WORKERS_VALUE == 2) {
+    numa_bitmask_setbit(node_set, 0);
+    numa_bitmask_setbit(node_set, 1);
+    DIEIF(
+        WRAP(mbind)(local_addr, local_len, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+        "mbind interleave failed");
+  } else if (OPT_NUM_WORKERS_VALUE == 3) {
+    numa_bitmask_setbit(node_set, 1);
+    numa_bitmask_setbit(node_set, 2);
+    numa_bitmask_setbit(node_set, 3);
+    DIEIF(
+        WRAP(mbind)(local_addr, local_len, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+        "mbind interleave failed");
+  } else if (OPT_NUM_WORKERS_VALUE == 4) {
+    numa_bitmask_setbit(node_set, 0);
+    numa_bitmask_setbit(node_set, 1);
+    numa_bitmask_setbit(node_set, 2);
+    numa_bitmask_setbit(node_set, 3);
+    DIEIF(
+        WRAP(mbind)(local_addr, local_len, MPOL_INTERLEAVE, node_set->maskp, node_set->size + 1, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+        "mbind interleave failed");
+  }
+
+  else {
+    //do nothing!
+  }
+
+  numa_bitmask_free(node_set);
+  //unsigned long zero_mask = 0;
+  //LTRACEF("mbind(%p, %lu, MPOL_LOCAL, NULL, 0, MPOL_MF_MOVE | MPOL_MF_STRICT)",
+  //        local_addr, local_len);
+  //DIEIF(
+  //    WRAP(mbind)(local_addr, local_len, MPOL_LOCAL, &zero_mask, 8, MPOL_MF_MOVE | MPOL_MF_STRICT) != 0,
+  //    "mbind local failed");
 }
 
 void place_pages(MemorySegment &segment, double ratio) {

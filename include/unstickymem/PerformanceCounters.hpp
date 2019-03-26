@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include <string>
+
 namespace unstickymem {
 
 void initialize_likwid();
@@ -12,6 +14,7 @@ double get_stall_rate();  // via joao barreto's lib
 
 double get_stall_rate_v2();  // via Like I Knew What I'm Doing (LIKWID Library!)
 void stop_all_counters();  // Restarting it might have some issues if counters are not stopped!
+double get_elapsed_stall_rate();  //get the elapsed stall rate
 
 // samples stall rate multiple times and filters outliers
 double get_average_stall_rate(size_t num_measurements,
@@ -24,6 +27,7 @@ double get_average_stall_rate2(size_t num_measurements,
 //output stall rate to a log file
 void unstickymem_log(double ratio, double sr);
 void unstickymem_log(double ratio);
+void unstickymem_log_v1(double sr, std::string mode);
 
 // read time stamp counter
 inline uint64_t readtsc(void);
