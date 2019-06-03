@@ -102,7 +102,7 @@ void initialize_likwid() {
     ncpus_per_node = ncpus / nnodes;
 
     //active_cpus = OPT_NUM_WORKERS_VALUE * ncpus_per_node;
-    OPT_NUM_WORKERS_VALUE=3;
+    //OPT_NUM_WORKERS_VALUE=3;
     active_cpus = 1;
 
     LINFOF(
