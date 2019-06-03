@@ -59,7 +59,7 @@ void WeightedAdaptiveMode::processSegmentAddition(
 }
 
 void WeightedAdaptiveMode::adaptiveThread() {
-  int local_ratio;
+
   double prev_stall_rate = std::numeric_limits<double>::infinity();
   double best_stall_rate = std::numeric_limits<double>::infinity();
   double stall_rate;
@@ -92,7 +92,7 @@ void WeightedAdaptiveMode::adaptiveThread() {
                                         _num_poll_outliers);
     //print stall_rate to a file for debugging!
     unstickymem_log(i, stall_rate);
-    LINFOF("Ratio: %d StallRate: %1.10lf (previous %1.10lf; best %1.10lf)", i,
+    LINFOF("Ratio: %lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)", i,
            stall_rate, prev_stall_rate, best_stall_rate);
 
     // compute the minimum rate
@@ -108,10 +108,9 @@ void WeightedAdaptiveMode::adaptiveThread() {
       }
     }
     prev_stall_rate = stall_rate;
-    local_ratio = i;
   }
   LINFO("My work here is done! Enjoy the speedup");
-  LINFOF("Ratio: %lf", local_ratio);
+  LINFOF("Ratio: %lf", i);
   LINFOF("Stall Rate: %1.10lf", stall_rate);
   LINFOF("Best Measured Stall Rate: %1.10lf", best_stall_rate);
 }
