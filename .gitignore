@@ -179,5 +179,6 @@ cmake_uninstall.cmake
 /test_hello_world
 /test_allocations
 
-# ignore the contrib folder
+# ignore the contrib, weights folders
 contrib/
+weights/

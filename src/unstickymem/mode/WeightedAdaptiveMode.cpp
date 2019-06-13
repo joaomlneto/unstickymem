@@ -49,8 +49,8 @@ void WeightedAdaptiveMode::printParameters() {
 void WeightedAdaptiveMode::processSegmentAddition(
     const MemorySegment& segment) {
 ///*  if (!_started) {
- //   return;
- // }
+  //   return;
+  // }
   if (segment.length() > (1UL << 14)) {
     // segment.print();
     place_pages_weighted_initial(segment);
@@ -76,7 +76,7 @@ void WeightedAdaptiveMode::adaptiveThread() {
   double i;
   bool terminate = false;
   for (i = 0; !terminate; i += ADAPTATION_STEP) {
-    if(i > sum_nww){
+    if (i > sum_nww) {
       i = sum_nww;
       terminate = true;
     }
@@ -85,13 +85,13 @@ void WeightedAdaptiveMode::adaptiveThread() {
     if (i != 0) {
       place_all_pages(segments, i);
     }
-    usleep(200000);
+    //usleep(200000);
     //sleep(1);
-    unstickymem_log(i);
+    //unstickymem_log(i);
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
     //print stall_rate to a file for debugging!
-    unstickymem_log(i, stall_rate);
+    //unstickymem_log(i, stall_rate);
     LINFOF("Ratio: %lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)", i,
            stall_rate, prev_stall_rate, best_stall_rate);
 
@@ -122,16 +122,16 @@ void WeightedAdaptiveMode::start() {
    numa_get_mems_allowed()->size);*/
   //return;
   // use weighted interleave as a default!
- /*MemoryMap &segments = MemoryMap::getInstance();
-  for (auto &segment : segments) {
-    if (segment.length() > (1UL << 14)) {
-      // segment.print();
-      place_pages_weighted_initial(segment);
-    }
-  }
+  /*MemoryMap &segments = MemoryMap::getInstance();
+   for (auto &segment : segments) {
+   if (segment.length() > (1UL << 14)) {
+   // segment.print();
+   place_pages_weighted_initial(segment);
+   }
+   }
 
-  _started = true;
-*/
+   _started = true;
+   */
   // start adaptive thread
   std::thread adaptiveThread(&WeightedAdaptiveMode::adaptiveThread, this);
 
