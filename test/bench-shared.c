@@ -182,7 +182,7 @@ void * doWork(void *arg) {
     printf("threads initialized memory! let's go!\n");
   }
   
-  for (int i=0; i < 4; i++) {
+  for (int i=0; i < 10; i++) {
     if (pthread_barrier_wait(&barrier) == PTHREAD_BARRIER_SERIAL_THREAD) {
       printf("starting new iteration..............\n");
     }
