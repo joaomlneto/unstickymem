@@ -178,6 +178,10 @@ cmake_uninstall.cmake
 /bench-shared
 /test_hello_world
 /test_allocations
+/autobench
+
+# ignore .txt files
+*.txt
 
 # ignore the contrib, weights folders
 contrib/
