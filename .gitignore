@@ -179,6 +179,7 @@ cmake_uninstall.cmake
 /test_hello_world
 /test_allocations
 /autobench
+test/bandwidth_bench
 
 # ignore .txt files
 *.txt

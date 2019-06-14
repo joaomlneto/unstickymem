@@ -74,6 +74,7 @@ void read_config(void) {
 }
 
 void print_config(void) {
+  LINFOF("Number of NUMA nodes: %d", MAX_NODES);
   LINFOF("num_workers: %s",
          OPT_NUM_WORKERS ? std::to_string(OPT_NUM_WORKERS_VALUE).c_str() : "no");
   LINFOF("monitoring_core: %s",
