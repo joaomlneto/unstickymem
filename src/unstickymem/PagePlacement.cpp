@@ -373,8 +373,8 @@ void place_pages_adaptive(MemorySegment &segment, double ratio) {
  */
 void place_pages_weighted_initial(const MemorySegment &segment) {
   if (segment.length() > 1ULL << 20) {
-    // LINFOF("segment %s [%p:%p]", segment.name().c_str(), segment.startAddress(),
-    //      segment.endAddress());
+     //LINFOF("segment %s [%p:%p]", segment.name().c_str(), segment.startAddress(),
+     //     segment.endAddress());
     //segment.print();
     place_pages_weighted_initial(segment.pageAlignedStartAddress(),
                                  segment.pageAlignedLength());
