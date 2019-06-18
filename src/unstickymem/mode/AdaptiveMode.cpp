@@ -72,16 +72,17 @@ void AdaptiveMode::adaptiveThread() {
   // slowly achieve awesomeness
   for (uint64_t local_percentage = (100 / numa_num_configured_nodes() + 4) / 5
       * 5; local_percentage <= 100; local_percentage += ADAPTATION_STEP) {
-    if(local_percentage % 10 == 0 && local_percentage != 100) continue;
+    if (local_percentage % 10 == 0 && local_percentage != 100)
+      continue;
     local_ratio = ((double) local_percentage) / 100;
     LINFOF("going to check a ratio of %3.1lf%%", local_ratio * 100);
     place_all_pages_adaptive(segments, local_ratio);
-    usleep(200000);
-    unstickymem_log(local_ratio);
+    //usleep(200000);
+    //unstickymem_log(local_ratio);
     stall_rate = get_average_stall_rate(_num_polls, _poll_sleep,
                                         _num_poll_outliers);
     //print stall_rate to a file for debugging!
-    unstickymem_log(local_ratio, stall_rate);
+    //unstickymem_log(local_ratio, stall_rate);
 
     LINFOF("Ratio: %1.2lf StallRate: %1.10lf (previous %1.10lf; best %1.10lf)",
            local_ratio, stall_rate, prev_stall_rate, best_stall_rate);
@@ -95,8 +96,10 @@ void AdaptiveMode::adaptiveThread() {
       // just make sure that its not something transient...!
       LINFO("Hmm... Is this the best we can do?");
       if (get_average_stall_rate(_num_polls * 2, _poll_sleep,
-                                 _num_poll_outliers * 2)) {
+                                 _num_poll_outliers * 2)
+          > (best_stall_rate * 1.001)) {
         LINFO("I guess so!");
+        unstickymem_log(local_ratio);
         break;
       }
     }
@@ -111,8 +114,8 @@ void AdaptiveMode::adaptiveThread() {
 void AdaptiveMode::start() {
   // interleave memory by default
   /*LINFO("Setting default memory policy to interleaved");
-  set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
-                numa_get_mems_allowed()->size);*/
+   set_mempolicy(MPOL_INTERLEAVE, numa_get_mems_allowed()->maskp,
+   numa_get_mems_allowed()->size);*/
 
   // start adaptive thread
   std::thread adaptiveThread(&AdaptiveMode::adaptiveThread, this);
