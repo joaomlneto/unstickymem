@@ -20,7 +20,7 @@
 namespace unstickymem {
 
 static bool initiatialized = false;
-static FILE *f = fopen("/home/dgureya/devs/unstickymem/unstickymem_log.txt",
+static FILE *f = fopen("/home/dgureya/unstickymem/unstickymem_log.txt",
                        "a");
 static FILE *f_1 = fopen(
     "/home/dgureya/devs/unstickymem/elapsed_stall_rate_log.txt", "a");
@@ -33,7 +33,7 @@ void unstickymem_log(double ratio, double sr) {
 
 void unstickymem_log(double ratio) {
   DIEIF(f == nullptr, "error opening file");
-  fprintf(f, "Stall rates for %1.2lf\n", ratio);
+  fprintf(f, "Final ratio %1.2lf\n", ratio);
 }
 
 void unstickymem_log_v1(double sr, std::string mode) {

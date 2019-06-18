@@ -113,6 +113,7 @@ void WeightedAdaptiveMode::adaptiveThread() {
                                  _num_poll_outliers * 2)
           > (best_stall_rate * 1.001)) {
         LINFO("I guess so!");
+        unstickymem_log(i);
         break;
       }
     }
