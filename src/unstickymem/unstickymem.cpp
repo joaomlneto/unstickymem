@@ -89,11 +89,13 @@ __attribute__((constructor)) void libunstickymem_initialize(void) {
   unstickymem::init_real_functions();
 
   // initialize likwid
-  initialize_likwid();
+  // initialize_likwid();
 
   // parse and display the configuration
   read_config();
   print_config();
+  
+  initialize_likwid();
 
   //set sum_ww & sum_nww & initialize the weights!
   get_sum_nww_ww(OPT_NUM_WORKERS_VALUE);
