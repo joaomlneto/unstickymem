@@ -55,11 +55,11 @@ void AdaptiveMode::adaptiveThread() {
 
   // pin thread to core zero
   // FIXME(dgureya): is this required when using likwid? - I don't think so!
-  // cpu_set_t mask;
-  // CPU_ZERO(&mask);
-  // CPU_SET(0, &mask);
-  // DIEIF(sched_setaffinity(syscall(SYS_gettid), sizeof(mask), &mask) < 0,
-  //		"could not set affinity for hw monitor thread");
+  cpu_set_t mask;
+  CPU_ZERO(&mask);
+  CPU_SET(0, &mask);
+  DIEIF(sched_setaffinity(syscall(SYS_gettid), sizeof(mask), &mask) < 0,
+        "could not set affinity for hw monitor thread");
 
   get_stall_rate_v2();
   get_elapsed_stall_rate();
