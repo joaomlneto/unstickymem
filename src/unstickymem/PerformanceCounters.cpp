@@ -20,8 +20,7 @@
 namespace unstickymem {
 
 static bool initiatialized = false;
-static FILE *f = fopen("/home/dgureya/unstickymem/unstickymem_log.txt",
-                       "a");
+static FILE *f = fopen("/home/dgureya/unstickymem/unstickymem_log.txt", "a");
 static FILE *f_1 = fopen(
     "/home/dgureya/devs/unstickymem/elapsed_stall_rate_log.txt", "a");
 
@@ -77,6 +76,35 @@ char const *amd_estr = "DISPATCH_STALLS:PMC0";
 //char intel_estr[] = "RESOURCE_STALLS_ANY:PMC0";  //Intel Broadwell EP
 char const *intel_estr = "RESOURCE_STALLS_ANY:PMC0";
 //if a specific pmc has been specified override the above variables!
+
+//a function that starts counters
+void start_counters() {
+  //Start all counters in the previously set up event set.
+  err = perfmon_startCounters();
+  if (err < 0) {
+    LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
+            (-1 * err) - 1);
+    perfmon_finalize();
+    topology_finalize();
+    exit(-1);
+    //return 1;
+  }
+}
+
+//a function that starts counters
+void stop_counters() {
+  // Stop all counters in the previously started event set before doing a read.
+  err = perfmon_stopCounters();
+  if (err < 0) {
+    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
+            (-1 * err) - 1);
+    perfmon_finalize();
+    topology_finalize();
+    //return 1;
+    exit(-1);
+  }
+}
+
 void check_pmc() {
   if (PMC_VALUE == 1) {
     amd_estr = "DISPATCH_STALLS:PMC1";
@@ -202,15 +230,8 @@ void initialize_likwid() {
     }
 
     // Start all counters in the previously set up event set.
-    err = perfmon_startCounters();
-    if (err < 0) {
-      LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
-              (-1 * err) - 1);
-      perfmon_finalize();
-      topology_finalize();
-      exit(-1);
-      //return 1;
-    }
+    start_counters();
+
     initiatialized = true;
     //printf("Setting up Likwid statistics for the first time\n");
   }
@@ -226,15 +247,7 @@ double get_elapsed_stall_rate() {
   static uint64_t elapsed_clockcounts = 0;
 
   // Stop all counters in the previously started event set before doing a read.
-  err = perfmon_stopCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    //return 1;
-    exit(-1);
-  }
+  stop_counters();
 
   // Read the result of every thread/CPU for all events in estr.
   // For now just read/print for the active cores only, actually just one core at the moment!
@@ -292,15 +305,7 @@ double get_elapsed_stall_rate() {
   elapsed_stalls = stalls;
   elapsed_clockcounts = clock;
 
-  err = perfmon_startCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    exit(-1);
-    //return 1;
-  }
+  start_counters();
 
   return stall_rate;
 }
@@ -314,15 +319,7 @@ double get_stall_rate_v2() {
   static uint64_t prev_clockcounts = 0;
 
   // Stop all counters in the previously started event set before doing a read.
-  err = perfmon_stopCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    //return 1;
-    exit(-1);
-  }
+  stop_counters();
 
   // Read the result of every thread/CPU for all events in estr.
   // For now just read/print for the active cores only, actually just one core at the moment!
@@ -380,30 +377,14 @@ double get_stall_rate_v2() {
   prev_stalls = stalls;
   prev_clockcounts = clock;
 
-  err = perfmon_startCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to start counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    exit(-1);
-    //return 1;
-  }
+  start_counters();
 
   return stall_rate;
   //return stalls;
 }
 
 void stop_all_counters() {
-  err = perfmon_stopCounters();
-  if (err < 0) {
-    LDEBUGF("Failed to stop counters for group %d for thread %d\n", gid,
-            (-1 * err) - 1);
-    perfmon_finalize();
-    topology_finalize();
-    //return 1;
-    exit(-1);
-  }
+  stop_counters();
   free(cpus);
   // Uninitialize the perfmon module.
   perfmon_finalize();
