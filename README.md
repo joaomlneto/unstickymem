@@ -1,3 +1,7 @@
+# A more recent version of this repository can be found at [`gureya/bwap`](https://github.com/gureya/bwap)
+
+---
+
 # unstickymem
 
 [![Build Status](https://travis-ci.com/joaomlneto/unstickymem.svg?token=QsVQsaqyQNrgjyTyzV4W&branch=master)](https://travis-ci.com/joaomlneto/unstickymem)
